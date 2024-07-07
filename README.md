@@ -166,3 +166,4 @@ Ubuntu (14.04 LTS and above) users install via apt:
  [7]: https://www.sphinx-doc.org/
  [8]: https://www.readthedocs.org/
  [9]: https://github.com/sosreport/sos/wiki
+
