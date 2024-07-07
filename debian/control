@@ -1,10 +1,10 @@
-Source: sosreport
-Maintainer: David Negreira <david.negreira@canonical.com>
+Source: doca-sosreport
+Maintainer: Michael Filanov <mfilanov@nvidia.com>
 Section: admin
 Priority: optional
-Standards-Version: 4.5.1
+Standards-Version: 4.6.1
 Build-Depends:
- debhelper-compat (= 13),
+ debhelper-compat (= 12),
  dh-python,
  gettext,
  python3-all,
@@ -16,14 +16,19 @@ Build-Depends:
  python3-pexpect,
  python3-packaging,
  python3-yaml,
-Homepage: https://github.com/sosreport/sos
+Homepage: https://github.com/nvidia/doca-sosreport
 Vcs-Browser: https://salsa.debian.org/sosreport-team/sosreport
 Vcs-Git: https://salsa.debian.org/sosreport-team/sosreport.git
 X-Python3-Version: >= 3.6
 
-Package: sosreport
+Package: doca-sosreport
 Architecture: any
 Depends: ${python3:Depends}, ${misc:Depends}, python3-pexpect, python3-magic, python3-packaging, python3-boto3
+rovides: doca-sosreport (= ${source:Version}),
+          sosreport
+Conflicts: sosreport
+Replaces: sosreport,
+          doca-sosreport (<< ${source:Version})
 Description: Set of tools to gather troubleshooting data from a system
  Sos is a set of tools that gathers information about system
  hardware and configuration. The information can then be used for

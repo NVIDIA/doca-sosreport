@@ -1,15 +1,15 @@
-sosreport (4.8.1) noble; urgency=medium
+doca-sosreport (4.8.1) unstable; urgency=low 
 
-  * New upstream release
+  * rebase on top of upstream 4.8.1
 
- -- Pavel Moravec <pmoravec@redhat.com>  Tue, 15 Oct 2024 16:01:01 +0200
+ -- Michael Filanov <mfilanov@nvidia.com>  Thu, 24 Nov 2024 14:40:01 +0100
 
-sosreport (4.8.0) noble; urgency=medium
+doca-sosreport (4.8.0-1) unstable; urgency=low
 
-  * New 4.8.0 upstream release
+  * replace sosreport with doca-sosreport
 
- -- Jake Hunsaker <jacob.r.hunsaker@gmail.com> Sat, 17 Aug 2024 09:36:32 -0400
-
+ -- Michael Filanov <mfilanov@nvidia.com>  Thu, 27 Jun 2024 14:40:01 +0100
+ 
 sosreport (4.7.2) noble; urgency=medium
 
   * New upstream release
