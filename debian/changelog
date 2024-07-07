@@ -1,3 +1,9 @@
+doca-sosreport (4.8.0-1) unstable; urgency=low
+
+  * replace sosreport with doca-sosreport
+
+ -- Michael Filanov <mfilanov@nvidia.com>  Thu, 27 Jun 2024 14:40:01 +0100
+ 
 sosreport (4.7.2) noble; urgency=medium
 
   * New upstream release
