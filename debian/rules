@@ -1,15 +1,17 @@
 #!/usr/bin/make -f
 
-export PYBUILD_NAME=sosreport
+export PYBUILD_NAME=doca-sosreport
+export PYBUILD_SYSTEM=distutils
 
 %:
 	dh $@ --with python3 --buildsystem=pybuild
 
 override_dh_install:
 	# Move config file to the right location.
-	mv debian/sosreport/usr/config/sos.conf debian/sosreport/etc/sos/sos.conf
+	mv debian/doca-sosreport/usr/config/sos.conf debian/doca-sosreport/etc/sos/sos.conf
+	mv debian/doca-sosreport/usr/config/sos-mlx-cloud-verification.conf debian/doca-sosreport/etc/sos/sos-mlx-cloud-verification.conf
 	# Remove unnecessary unused dir.
-	rm -rf debian/sosreport/usr/config
+	rm -rf debian/doca-sosreport/usr/config
 
 override_dh_auto_test:
 	nosetests3 -v --with-cover --cover-package=sos tests/unittests --ignore-files="policy_tests\.py"
