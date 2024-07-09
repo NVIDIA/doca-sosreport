@@ -19,7 +19,7 @@ Recommends: python3-magic
 # Mandatory just for uploading to a SFTP server:
 Recommends: python3-requests
 Recommends: python3-pyyaml
-Obsoletes: sos-collector <= 1.9
+Obsoletes: sos-collector <= 1.9, sos <= 4.0
 # For the _tmpfilesdir macro.
 BuildRequires: systemd
 # Mandatory just for uploading to an S3 bucket:
@@ -63,6 +63,7 @@ install -d -m 755 %{buildroot}%{_sysconfdir}/%{sosname}/groups.d
 install -d -m 755 %{buildroot}%{_sysconfdir}/%{sosname}/extras.d
 install -d -m 755 %{buildroot}%{_tmpfilesdir}
 install -m 644 %{sosname}.conf %{buildroot}%{_sysconfdir}/%{sosname}/%{sosname}.conf
+install -m 644 sos-mlx-cloud-verification.conf %{buildroot}%{_sysconfdir}/%{sosname}/sos-mlx-cloud-verification.conf
 install -m 644 tmpfiles/tmpfilesd-sos-rh.conf %{buildroot}%{_tmpfilesdir}/%{sosname}.conf
 
 rm -rf %{buildroot}/usr/config/
@@ -92,6 +93,7 @@ rm -rf %{buildroot}/usr/config/
 %doc AUTHORS README.md
 %license LICENSE
 %config(noreplace) %{_sysconfdir}/sos/sos.conf
+%config(noreplace) %{_sysconfdir}/sos/sos-mlx-cloud-verification.conf
 
 %changelog
 * Fri Jun 21 2024 Pavel Moravec <pmoravec@redhat.com> = 4.7.2
