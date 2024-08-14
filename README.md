@@ -1,19 +1,21 @@
 [![Build Status](https://api.cirrus-ci.com/github/sosreport/sos.svg?branch=main)](https://cirrus-ci.com/github/sosreport/sos) [![Documentation Status](https://readthedocs.org/projects/sos/badge/?version=main)](https://sos.readthedocs.io/en/main/?badge=main) [![sosreport](https://snapcraft.io/sosreport/badge.svg)](https://snapcraft.io/sosreport)
 
 
+![DOCA Release Feature](https://developer-blogs.nvidia.com/wp-content/uploads/2022/10/doca-1-5-lts-release-featured-1.png)
+
+
+
 # SoS
 
-Sos is an extensible, portable, support data collection tool primarily
-aimed at Linux distributions and other UNIX-like operating systems.
+Sos is an extensible, portable, support data collection tool primarily aimed at Linux distributions and other UNIX-like operating systems.
 
 This project is hosted at:
 
-  * https://github.com/sosreport/sos
+- https://github.com/sosreport/sos
 
-For the latest version, to contribute, and for more information, please visit
-the project pages or join the mailing list.
+For the latest version, to contribute, and for more information, please visit the project pages or join the mailing list.
 
-To clone the current main (development) branch run:
+To clone the current main (development) branch, run:
 
 ```
 git clone git://github.com/sosreport/sos.git
