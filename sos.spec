@@ -97,6 +97,10 @@ rm -rf %{buildroot}/usr/config/
 %config(noreplace) %{_sysconfdir}/sos/sos-mlx-cloud-verification.conf
 
 %changelog
+* Sat Aug 17 2024 Jake Hunsaker <jacob.r.hunsaker@gmail.com> = 4.8.0
+- New upstream release
+- License clarification to GPLv2 only
+
 * Fri Jun 21 2024 Pavel Moravec <pmoravec@redhat.com> = 4.7.2
 - New upstream release
 
