@@ -3,7 +3,7 @@ Name: doca-sosreport
 Version: 4.8.0
 Release: 1%{?dist}
 Source0: %{name}-%{version}.tar.gz
-License: GPL-2.0-or-later
+License: GPL-2.0-only
 BuildArch: noarch
 Url: https://github.com/sosreport/sos
 BuildRequires: python3-devel
