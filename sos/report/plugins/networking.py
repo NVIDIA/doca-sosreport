@@ -116,6 +116,7 @@ class Networking(Plugin):
                 "devlink dev param show",
                 "devlink dev info",
                 "devlink port show",
+                "devlink health show",
             ])
 
             devlinks = self.collect_cmd_output("devlink dev")
