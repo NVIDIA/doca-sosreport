@@ -1,3 +1,9 @@
+doca-sosreport (4.8.1) unstable; urgency=low
+
+  * rebase on top of upstream 4.8.1
+
+ -- Michael Filanov <mfilanov@nvidia.com>  Sun, 24 Nov 2024 14:40:01 +0100
+
 doca-sosreport (4.8.0-1) unstable; urgency=low
 
   * replace sosreport with doca-sosreport

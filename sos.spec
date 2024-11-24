@@ -1,6 +1,6 @@
 Summary: A set of tools to gather troubleshooting information from a system
 Name: doca-sosreport
-Version: 4.8.0
+Version: 4.8.1
 Release: 1%{?dist}
 Source0: %{name}-%{version}.tar.gz
 License: GPL-2.0-only
