@@ -64,6 +64,8 @@ class Networking(Plugin):
             "/etc/xinetd.d",
             "/etc/yp.conf",
             "/proc/net/",
+            "/proc/sys/net/ipv6/conf/",
+            "/proc/sys/net/ipv4/conf/",
             "/sys/class/net/*/device/numa_node",
             "/sys/class/net/*/flags",
             "/sys/class/net/*/statistics/",
