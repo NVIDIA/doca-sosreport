@@ -32,7 +32,7 @@ if [ "$DEBUG" == "true" ] ; then
 fi
 
 options="$case_id $verbose"
-sos report -s /host -a --all-logs --plugin-timeout 500 --cmd-timeout 120 --batch $options | tee /tmp/log.txt
+sos report -s /host $options | tee /tmp/log.txt
 
 tmp_sosreport_file=$(grep 'tar.xz' /tmp/log.txt  | awk '{print $1}')
 sosreport_basename=$(basename $tmp_sosreport_file)

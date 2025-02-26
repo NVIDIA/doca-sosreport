@@ -101,3 +101,5 @@ COPY sos-mlx-cloud-verification.conf /etc/sos/sos.conf
 COPY --chmod=0755 scripts/report.sh /usr/local/bin/sos-report
 
 ENV PATH="/opt/venv/bin:$PATH"
+
+ENTRYPOINT ["/usr/local/bin/sos-report"]
