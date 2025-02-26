@@ -166,3 +166,41 @@ Ubuntu (14.04 LTS and above) users install via apt:
  [7]: https://www.sphinx-doc.org/
  [8]: https://www.readthedocs.org/
  [9]: https://github.com/sosreport/sos/wiki
+
+ ### Docker
+
+ It is possible to use the sosreport tool in a Docker container. To build the image,
+ run:
+
+ ```
+ # docker build -t sosreport .
+ ```
+
+ It is also possible to use the pre-built image from GitHub Container Registry:
+
+ ```
+ # docker pull ghcr.io/nvidia/sosreport:${TAG}
+```
+
+To run the container on `linux`, use the following command:
+
+```
+# docker run --rm -it --privileged \
+  -e CASE_ID=123456 \
+  -e DEBUG=true \
+  -v /:/host:ro \
+  -v /run:/run:ro \
+  -v /var/log:/var/log:ro \
+  -v /etc/localtime:/etc/localtime:ro \
+  -v /etc/machine-id:/etc/machine-id:ro \
+  -v /boot:/boot:ro \
+  -v /usr/lib/modules/:/usr/lib/modules/:ro \
+  -v /etc/kubernetes/admin.conf:/etc/kubernetes/admin.conf:ro \
+  --network host \
+  --pid host \
+  --ipc host \
+  ghcr.io/nvidia/sosreport:${TAG} 
+```
+
+**Note**: The `--privileged` flag is required to run sosreport in a container.
+Networking, IPC, and PID namespaces are shared with the host to collect the necessary data.

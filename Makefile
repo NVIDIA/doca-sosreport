@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= NVIDIA/doca-sosreport
+IMG ?= ghcr.io/nvidia/sosreport
 TAG ?= latest
 
 # Allows for defining additional Docker buildx arguments,

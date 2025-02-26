@@ -67,9 +67,10 @@ RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recomme
     inetutils-traceroute \
     ethtool \
     bridge-utils \
-    dmidecode
+    dmidecode && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update -qy && apt-get install -qyy \
+RUN apt-get update -y && apt-get install -y \
     -o APT::Install-Recommends=false \
     -o APT::Install-Suggests=false \
     python${PYTHON_VERSION} \
@@ -93,7 +94,8 @@ RUN --mount=type=cache,target=/root/.cache \
     | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg && \
     echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_VERSION}/deb/ /" \
     | tee /etc/apt/sources.list.d/kubernetes.list && \
-    apt-get update && apt-get install -y cri-tools kubectl
+    apt-get update -y && apt-get install -y cri-tools kubectl && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /opt/venv /opt/venv
 COPY sos-mlx-cloud-verification.conf /etc/sos/sos.conf
@@ -101,3 +103,5 @@ COPY sos-mlx-cloud-verification.conf /etc/sos/sos.conf
 COPY --chmod=0755 scripts/report.sh /usr/local/bin/sos-report
 
 ENV PATH="/opt/venv/bin:$PATH"
+
+ENTRYPOINT ["/usr/local/bin/sos-report"]

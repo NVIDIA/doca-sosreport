@@ -24,15 +24,15 @@ set -eo pipefail
 
 OUTPUT_DIR=/host/tmp
 
+declare options
 if [ -n "$CASE_ID" ]; then
-	case_id="--case-id $CASE_ID"
+	options+=("--case-id $CASE_ID")
 fi
 if [ "$DEBUG" == "true" ] ; then
-	verbose="-v"
+	options+=("-v")
 fi
 
-options="$case_id $verbose"
-sos report -s /host -a --all-logs --plugin-timeout 500 --cmd-timeout 120 --batch $options | tee /tmp/log.txt
+sos report -s /host ${options[@]} | tee /tmp/log.txt
 
 tmp_sosreport_file=$(grep 'tar.xz' /tmp/log.txt  | awk '{print $1}')
 sosreport_basename=$(basename $tmp_sosreport_file)
