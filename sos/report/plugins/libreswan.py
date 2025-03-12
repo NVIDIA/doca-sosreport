@@ -48,7 +48,7 @@ class Libreswan(Plugin, IndependentPlugin):
                                  required={'kmods': 'all'})
         self.add_cmd_output([
             'ip xfrm policy',
-            'ip xfrm state'
+            'ip -s xfrm state'
         ], pred=xfrm_pred)
 
         if self.get_option("ipsec-barf"):
