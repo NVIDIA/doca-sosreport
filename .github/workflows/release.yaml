@@ -1,0 +1,70 @@
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'image tag prefix'
+        default: 'preview'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # for creating OIDC tokens for signing.
+      packages: write # for pushing and signing container images.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Prepare
+        id: prep
+        run: |
+          VERSION="${{ github.event.inputs.tag }}-${GITHUB_SHA::8}"
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF/refs\/tags\//}
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@4574d27a4764455b42196d70a065bc6853246a25 # v3.4.0
+      - name: Setup Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@f7ce87c1d6bead3e36075b2ce75da1f6cc28aaca # v3.9.0
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+      - name: Generate images meta
+        id: meta
+        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5.6.1
+        with:
+          images: |
+            ghcr.io/nvidia/sosreport
+          tags: |
+            type=raw,value=${{ steps.prep.outputs.VERSION }}
+      - name: Publish images
+        id: build-push
+        uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
+        with:
+          sbom: true
+          provenance: true
+          push: true
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      - uses: sigstore/cosign-installer@c56c2d3e59e4281cc41dea2217323ba5694b171e # v3.8.0
+      - name: Sign images
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          cosign sign --yes ghcr.io/nvidia/sosreport@${{ steps.build-push.outputs.digest }}
