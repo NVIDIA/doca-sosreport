@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: fedora:38
+    container: rockylinux:8
 
     steps:
     - name: Checkout repository
@@ -13,7 +13,6 @@ jobs:
 
     - name: Install RPM tools
       run: |
-        dnf install -y python3.10
         dnf install -y systemd systemd-devel rpm-build rpmdevtools gettext python3-devel python3-setuptools python3-systemd
         dnf install -y 'dnf-command(builddep)'
 
