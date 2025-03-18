@@ -372,7 +372,8 @@ class SosNode():
             for line in result.splitlines():
                 if not is_list:
                     try:
-                        if ls := line.split():
+                        ls = line.split()
+                        if ls:
                             res.append(ls[0])
                     except Exception as err:
                         self.log_debug(f"Error parsing sos help: {err}")

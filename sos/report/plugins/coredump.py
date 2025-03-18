@@ -72,7 +72,8 @@ class Coredump(Plugin, IndependentPlugin):
             cdump = line.split()
             pid = cdump[4]
             exe = cdump[-2]
-            if regex := self.get_option("executable"):
+            regex = self.get_option("executable")
+            if regex:
                 if not re.search(regex, exe, re.I):
                     continue
             cinfo = self.collect_cmd_output(f"coredumpctl info {pid}")
