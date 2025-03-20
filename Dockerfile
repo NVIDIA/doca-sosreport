@@ -55,6 +55,7 @@ RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recomme
     ca-certificates \
     gpg \
     curl \
+    wget \
     pciutils \
     systemd \
     util-linux \
@@ -90,8 +91,9 @@ RUN --mount=type=cache,target=/root/.cache \
 
 # TODO: If we plan support for additional container runtimes, we need to install the corresponding packages here.
 RUN --mount=type=cache,target=/root/.cache \
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_VERSION}/deb/Release.key \
-    | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg && \
+    wget https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_VERSION}/deb/Release.key -O /tmp/Release.key && \
+    gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg /tmp/Release.key && \
+    rm /tmp/Release.key && \
     echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_VERSION}/deb/ /" \
     | tee /etc/apt/sources.list.d/kubernetes.list && \
     apt-get update -y && apt-get install -y cri-tools kubectl && \
