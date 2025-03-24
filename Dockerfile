@@ -100,7 +100,8 @@ RUN --mount=type=cache,target=/root/.cache \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /opt/venv /opt/venv
-COPY sos-mlx-cloud-verification.conf /etc/sos/sos.conf
+
+COPY sos-nvidia.conf /etc/sos/sos-nvidia.conf
 
 COPY --chmod=0755 scripts/report.sh /usr/local/bin/sos-report
 
