@@ -67,6 +67,8 @@ RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recomme
     iproute2 \
     inetutils-traceroute \
     ethtool \
+    conntrack \
+    openvswitch-switch \
     bridge-utils \
     dmidecode && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
