@@ -71,7 +71,7 @@ class DocaDpf(Plugin):
     ]
 
     option_list = [
-        PluginOpt('all', default=False,
+        PluginOpt('all', default=True,
                   desc='collect all namespace output separately'),
         PluginOpt('describe', default=False,
                   desc='collect describe output of all resources')
