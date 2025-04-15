@@ -115,7 +115,7 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
                 ["mlxlink -d ", ""],
                 # segment is hard coded at the moment, no way to get it
                 # out of the firmware
-                ["resourcedump dump --device ", " --segment 0x400"],
+                # ["resourcedump dump --device ", " --segment 0x400"],
             ]
         for device in devices:
             for command in commands:
