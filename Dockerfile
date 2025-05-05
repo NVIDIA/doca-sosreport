@@ -37,6 +37,7 @@ COPY README.md .
 COPY sos.conf .
 COPY sos-mlx-cloud-verification.conf .
 COPY sos-nvidia.conf .
+COPY sos-nvdebug.conf .
 
 RUN --mount=type=cache,target=/root/.cache \
     uv venv /opt/venv && uv pip install .
@@ -104,6 +105,7 @@ RUN --mount=type=cache,target=/root/.cache \
 COPY --from=build /opt/venv /opt/venv
 
 COPY sos-nvidia.conf /etc/sos/sos-nvidia.conf
+COPY sos-nvdebug.conf /etc/sos/sos-nvdebug.conf
 
 COPY --chmod=0755 scripts/report.sh /usr/local/bin/sos-report
 

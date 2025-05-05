@@ -1,3 +1,4 @@
 sos.conf etc/sos/
 sos-mlx-cloud-verification.conf etc/sos/
 sos-nvidia.conf etc/sos/
+sos-nvdebug.conf etc/sos/
