@@ -3,5 +3,5 @@ coverage>=4.0.3
 Sphinx>=4.3.2
 pexpect>=4.0.0
 pyyaml
-packaging
+packaging>=21.2
 
