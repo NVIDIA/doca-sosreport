@@ -108,6 +108,10 @@ class OpenVSwitch(Plugin):
             f"{self.actl} tnl/arp/show",
             # Capture a list of listening ports"
             f"{self.actl} tnl/ports/show -v",
+            # Capture tnl neigh table"
+            f"{self.actl} tnl/neigh/show",
+            # Capture tnl neigh aging"
+            f"{self.actl} tnl/neigh/aging",
             # Capture upcall information
             f"{self.actl} upcall/show",
             # Capture OVS list
