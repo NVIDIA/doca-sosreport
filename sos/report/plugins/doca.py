@@ -8,6 +8,7 @@
 # See the LICENSE file in the source distribution for further information.
 
 from sos.report.plugins import Plugin, IndependentPlugin
+import os
 
 
 class Doca(Plugin, IndependentPlugin):
@@ -28,5 +29,28 @@ class Doca(Plugin, IndependentPlugin):
             f'{doca_caps} --list-libs',
             f'{doca_caps}',
         ])
+
+        doca_script = '/opt/mellanox/doca/scripts/sos_script.sh'
+        self.add_cmd_output(doca_script)
+
+        doca_commands_file = '/var/tmp/sos_commands'
+        if os.path.isfile(doca_commands_file):
+            try:
+                with open(doca_commands_file, 'r', encoding='UTF-8') as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        self.add_cmd_output(line.strip())
+            except Exception as e:
+                self._log_warn(f'Error reading {doca_commands_file}: {e}')
+
+        doca_logs = '/opt/mellanox/doca/scripts/sos_logs'
+        if os.path.isfile(doca_logs):
+            try:
+                with open(doca_logs, 'r', encoding='UTF-8') as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        self.add_copy_spec(line.strip())
+            except Exception as e:
+                self._log_warn(f'Error reading {doca_logs}: {e}')
 
 # vim: set et ts=4 sw=4 :
