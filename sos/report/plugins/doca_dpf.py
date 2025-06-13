@@ -11,6 +11,7 @@
 import base64
 import json
 import os
+import shlex
 from sos.report.plugins import (Plugin, RedHatPlugin, DebianPlugin,
                                 UbuntuPlugin, PluginOpt)
 
@@ -105,18 +106,46 @@ class DocaDpf(Plugin):
     ]
 
     kube_cmd = "kubectl"
+    # kubectl only talks to the API server, so run it from the sos environment
+    # rather than chrooted into the sysroot. When sos runs in a container with
+    # the host mounted as sysroot, kubectl and the kubeconfig are provided by
+    # the container and usually do not exist on the host.
+    kube_chroot = False
+
+    def find_kubeconfig(self):
+        """Return the path to the first kubeconfig found, or None.
+
+        Kubeconfigs in the local filesystem take precedence over those in the
+        sysroot, as kubectl is not chrooted into the sysroot. With
+        --chroot=always kubectl runs in the sysroot, so only kubeconfigs there
+        are used, by their path in the sysroot.
+        """
+        chroot_always = self.commons['cmdlineopts'].chroot == 'always'
+        if not chroot_always:
+            for _kconf in self.files:
+                if os.path.exists(_kconf):
+                    return _kconf
+        for _kconf in self.files:
+            if self.path_exists(_kconf):
+                return _kconf if chroot_always else self.path_join(_kconf)
+        return None
+
+    def check_enabled(self):
+        # The generic check only looks for files in the sysroot and would miss
+        # a kubeconfig that only exists in the local filesystem.
+        return (self.find_kubeconfig() is not None or
+                super().check_enabled())
 
     def set_kubeconfig(self):
         if os.environ.get('KUBECONFIG'):
             return
-        for _kconf in self.files:
-            if self.path_exists(_kconf):
-                self.kube_cmd += f" --kubeconfig={_kconf}"
-                break
+        kconf = self.find_kubeconfig()
+        if kconf:
+            self.kube_cmd += f" --kubeconfig={shlex.quote(kconf)}"
 
     def check_is_master(self):
         """ Check if this is the master node """
-        return any(self.path_exists(f) for f in self.files)
+        return self.find_kubeconfig() is not None
 
     def setup(self):
         # Copy the specified configuration files
@@ -137,7 +166,8 @@ class DocaDpf(Plugin):
         """ Collect details about each resource in all namespaces """
         # get all namespaces in use
         kns = self.collect_cmd_output(f'{self.kube_cmd} get namespaces',
-                                      subdir='cluster-info')
+                                      subdir='cluster-info',
+                                      chroot=self.kube_chroot)
         # namespace is the 1st word on line, until the line has spaces only
         kn_output = kns['output'].splitlines()[1:]
         knsps = [n.split()[0] for n in kn_output if n and len(n.split())]
@@ -150,14 +180,16 @@ class DocaDpf(Plugin):
                 for res in self.resources:
                     self.add_cmd_output(
                         f'{k_cmd} {res}',
-                        subdir=f'cluster-info/{nspace}'
+                        subdir=f'cluster-info/{nspace}',
+                        chroot=self.kube_chroot
                     )
 
             if self.get_option('describe'):
                 # need to drop json formatting for this
                 k_cmd = f'{self.kube_cmd} {knsp}'
                 for res in self.resources:
-                    ret = self.exec_cmd(f'{k_cmd} get {res}')
+                    ret = self.exec_cmd(f'{k_cmd} get {res}',
+                                        chroot=self.kube_chroot)
                     if ret['status'] == 0:
                         k_list = [k.split()[0] for k in
                                   ret['output'].splitlines()[1:]]
@@ -165,7 +197,8 @@ class DocaDpf(Plugin):
                             k_cmd = f'{self.kube_cmd} {knsp}'
                             self.add_cmd_output(
                                 f'{k_cmd} describe {res} {item}',
-                                subdir=f'cluster-info/{nspace}/{res}'
+                                subdir=f'cluster-info/{nspace}/{res}',
+                                chroot=self.kube_chroot
                             )
 
     def _discover_dpu_clusters(self):
@@ -176,7 +209,8 @@ class DocaDpf(Plugin):
         """
         result = self.collect_cmd_output(
             f"{self.kube_cmd} get dpucluster -A -o json",
-            subdir='cluster-info'
+            subdir='cluster-info',
+            chroot=self.kube_chroot
         )
 
         if result['status'] != 0:
@@ -216,8 +250,11 @@ class DocaDpf(Plugin):
         secret_name = cluster_info['kubeconfig']
         subdir_base = f'dpu-clusters/{namespace}/{cluster_name}'
 
-        # Create unique temp kubeconfig path
-        mktemp_ret = self.exec_cmd('mktemp /tmp/sos-dpu-kc.XXXXXX')
+        # Create unique temp kubeconfig path. It is written from python below,
+        # so it must be created in, and used from, the local filesystem rather
+        # than the sysroot.
+        mktemp_ret = self.exec_cmd('mktemp /tmp/sos-dpu-kc.XXXXXX',
+                                   chroot=False)
         if mktemp_ret['status'] != 0:
             self._log_error(
                 f"Failed to create temp kubeconfig for {cluster_name}"
@@ -231,7 +268,7 @@ class DocaDpf(Plugin):
             f"{self.kube_cmd} get secret {secret_name} -n {namespace} "
             f"-o jsonpath='{{.data.admin\\.conf}}'"
         )
-        extract_result = self.exec_cmd(extract_cmd)
+        extract_result = self.exec_cmd(extract_cmd, chroot=self.kube_chroot)
         kubeconfig_b64 = extract_result['output'].strip()
 
         if extract_result['status'] != 0 or not kubeconfig_b64:
@@ -269,7 +306,8 @@ class DocaDpf(Plugin):
         )
         kns_result = self.collect_cmd_output(
             f"{dpu_kube_cmd} get namespaces -o json",
-            subdir=subdir_base
+            subdir=subdir_base,
+            chroot=False
         )
 
         if kns_result['status'] != 0:
@@ -308,7 +346,8 @@ class DocaDpf(Plugin):
                 for res in self.resources:
                     self.add_cmd_output(
                         f"{k_cmd} {res}",
-                        subdir=f"{subdir_base}/{nspace}"
+                        subdir=f"{subdir_base}/{nspace}",
+                        chroot=False
                     )
 
             if self.get_option('describe'):
@@ -316,7 +355,7 @@ class DocaDpf(Plugin):
                     f"{dpu_kube_cmd} {nspace_arg} --ignore-not-found"
                 )
                 for res in self.resources:
-                    ret = self.exec_cmd(f"{k_base} get {res}")
+                    ret = self.exec_cmd(f"{k_base} get {res}", chroot=False)
                     if ret['status'] == 0:
                         items = [
                             line.split()[0]
@@ -326,7 +365,8 @@ class DocaDpf(Plugin):
                         for item in items:
                             self.add_cmd_output(
                                 f"{k_base} describe {res} {item}",
-                                subdir=f"{subdir_base}/{nspace}/{res}"
+                                subdir=f"{subdir_base}/{nspace}/{res}",
+                                chroot=False
                             )
 
     def _collect_all_dpu_clusters(self):
@@ -382,7 +422,9 @@ class UbuntuKubernetes(DocaDpf, UbuntuPlugin, DebianPlugin):
         self.set_kubeconfig()
 
         if self.is_installed('microk8s'):
+            # microk8s kubectl is part of the snap on the (sys)root
             self.kube_cmd = 'microk8s kubectl'
+            self.kube_chroot = True
 
         self.config_files.extend([
             '/root/cdk/kubelet/config.yaml',

@@ -167,10 +167,7 @@ class SoSComponent():
         if self.opts.tmp_dir:
             tmpdir = os.path.abspath(self.opts.tmp_dir)
         else:
-            tmpdir = os.getenv('TMPDIR', None) or '/var/tmp'
-
-        if os.getenv('HOST', None) and os.getenv('container', None):
-            tmpdir = os.path.join(os.getenv('HOST'), tmpdir.lstrip('/'))
+            tmpdir = os.getenv('TMPDIR', None) or self.policy.get_tmp_dir(None)
 
         # no standard library method exists for this, so call out to stat to
         # avoid bringing in a dependency on psutil
