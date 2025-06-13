@@ -31,7 +31,7 @@ class Doca(Plugin, IndependentPlugin):
         ])
 
         doca_script = '/opt/mellanox/doca/scripts/sos_script.sh'
-        self.add_cmd_output(doca_script)
+        self.exec_cmd(doca_script)
 
         doca_commands_file = '/var/tmp/sos_commands'
         if os.path.isfile(doca_commands_file):
