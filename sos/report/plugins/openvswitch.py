@@ -20,6 +20,7 @@ class OpenVSwitch(Plugin):
     profiles = ('network', 'virt')
     actl = "ovs-appctl"
     vctl = "ovs-vsctl"
+    vswitchd = "ovs-vswitchd"
     ofctl = "ovs-ofctl"
     dpctl = "ovs-dpctl"
     check_dpdk = False
@@ -85,6 +86,7 @@ class OpenVSwitch(Plugin):
         ])
 
         self.add_cmd_output([
+            f"{self.vswitchd} --version",
             # List devices and their drivers
             "dpdk_nic_bind --status",
             "dpdk-devbind.py --status",
