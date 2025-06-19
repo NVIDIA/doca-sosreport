@@ -20,6 +20,7 @@ class OpenVSwitch(Plugin):
     profiles = ('network', 'virt')
     actl = "ovs-appctl"
     vctl = "ovs-vsctl"
+    vswitchd = "ovs-vswitchd"
     ofctl = "ovs-ofctl"
     dpctl = "ovs-dpctl"
     check_dpdk = False
@@ -288,6 +289,7 @@ class OpenVSwitch(Plugin):
                 f"{self.actl} fdb/stats-show {bri}",
                 f"{self.actl} mdb/show {bri}",
                 f"{self.ofctl} dump-flows {bri}",
+                f"{self.ofctl} dump-flows --names {bri}",
                 f"{self.ofctl} dump-ports-desc {bri}",
                 f"{self.ofctl} dump-ports {bri}",
                 f"{self.ofctl} queue-get-config {bri}",
@@ -371,6 +373,7 @@ class OpenVSwitch(Plugin):
         }
 
         ofp_ver_result = self.collect_cmd_output(f"{self.vctl} -t 5 --version")
+        ofp_ver_result = self.collect_cmd_output(f"{self.vswitchd} --version")
 
         # List protocols currently in use, if any
         br_info = self.collect_cmd_output(
@@ -407,6 +410,7 @@ class OpenVSwitch(Plugin):
                     f"{self.ofctl} -O {flow} dump-groups {bridge}",
                     f"{self.ofctl} -O {flow} dump-group-stats {bridge}",
                     f"{self.ofctl} -O {flow} dump-flows {bridge}",
+                    f"{self.ofctl} -O {flow} dump-flows --names {bridge}",
                     f"{self.ofctl} -O {flow} dump-tlv-map {bridge}",
                     f"{self.ofctl} -O {flow} dump-ports-desc {bridge}",
                     f"{self.ofctl} -O {flow} dump-meters {bridge}",
