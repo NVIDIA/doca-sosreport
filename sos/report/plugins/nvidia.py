@@ -24,12 +24,14 @@ class Nvidia(Plugin, IndependentPlugin):
         self.add_copy_spec("/etc/cdi/nvidia.yaml")
 
         subcmds = [
+            '',
             '--list-gpus',
             '-q -d PERFORMANCE',
             '-q -d SUPPORTED_CLOCKS',
             '-q -d PAGE_RETIREMENT',
             '-q',
             '-q -d ECC',
+            'topo -m',
             'nvlink -s',
             'nvlink -e'
         ]
