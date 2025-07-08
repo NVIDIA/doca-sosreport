@@ -187,7 +187,7 @@ To run the container on `linux`, use the following command:
 # docker run --rm -it --privileged \
   -e CASE_ID=123456 \
   -e DEBUG=true \
-  -v /:/host:ro \
+  -v /:/host:rw \
   -v /run:/run:ro \
   -v /var/log:/var/log:ro \
   -v /etc/localtime:/etc/localtime:ro \
