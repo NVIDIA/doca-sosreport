@@ -22,7 +22,7 @@
 
 set -eo pipefail
 
-OUTPUT_DIR=/host/tmp
+: "${OUTPUT_DIR:=/host/tmp}"
 
 declare options
 if [ -n "$CASE_ID" ]; then
