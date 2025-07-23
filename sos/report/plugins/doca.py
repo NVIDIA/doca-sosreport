@@ -43,7 +43,7 @@ class Doca(Plugin, IndependentPlugin):
             except Exception as e:
                 self._log_warn(f'Error reading {doca_commands_file}: {e}')
 
-        doca_logs = '/opt/mellanox/doca/scripts/sos_logs'
+        doca_logs = '/opt/mellanox/doca/tools/sos_logs'
         if os.path.isfile(doca_logs):
             try:
                 with open(doca_logs, 'r', encoding='UTF-8') as f:
