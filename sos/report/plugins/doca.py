@@ -20,7 +20,24 @@ class Doca(Plugin, IndependentPlugin):
     profiles = ('hardware', )
     packages = ('doca-caps',)
 
+    doca_version = "/opt/mellanox/doca/VERSION"
+    mlnx_release = "/etc/mlnx-release"
+
+    def check_enabled(self):
+        return os.path.isfile(self.doca_version) or \
+         os.path.isfile(self.mlnx_release)
+
     def setup(self):
+        self.add_copy_spec([
+            self.doca_version,
+            self.mlnx_release,
+        ])
+
+        self.add_cmd_output([
+            'bf-info',      # collect bfb info, installed with doca-extra
+            'doca-info',    # collect doca-host info
+        ])
+
         doca_caps = '/opt/mellanox/doca/tools/doca_caps'
         self.add_cmd_output([
             f'{doca_caps} -v',
