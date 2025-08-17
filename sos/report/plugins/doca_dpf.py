@@ -43,6 +43,7 @@ class DocaDpf(Plugin):
     # DOCA Platform Framework related configuration files to collect
     config_files = []
     resources = [
+        'pod',
         'bfb',
         'dpfoperatorconfig',
         'dpu',
