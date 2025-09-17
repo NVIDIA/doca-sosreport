@@ -18,9 +18,11 @@ class RoCE(Plugin, IndependentPlugin):
     plugin_name = 'roce'
     profiles = ('hardware',)
     # rdma installed with iproute2
-    packages = ('iproute2', 'infiniband-diags')
+    packages = ('iproute2', 'infiniband-diags', 'mlnx-tools')
 
     def setup(self):
+
+        self.add_cmd_output("show_gids")
 
         cma_rocy_installed = shutil.which('cma_roce_mode') is not None
 
@@ -80,6 +82,8 @@ class RoCE(Plugin, IndependentPlugin):
                     # dump roce_rp
                     roce_rp = netsys + "/" + netdev + "/ecn/roce_rp"
                     self.add_copy_spec([roce_rp])
+
+                    self.add_cmd_output(f"mlnx_qos -i {netdev}")
 
                 if not skip_cma_roce:
                     # cma roce mode
