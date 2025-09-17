@@ -37,6 +37,10 @@ class Pci(Plugin, IndependentPlugin):
         if self.check_for_bus_devices():
             self.add_cmd_output("lspci -nnvv", root_symlink="lspci",
                                 tags="lspci")
-            self.add_cmd_output("lspci -tv")
+            self.add_cmd_output([
+                "lspci -tv",
+                "lspci -DPP",
+                "lspci -nnvvvxxxx",
+            ])
 
 # vim: set et ts=4 sw=4 :
