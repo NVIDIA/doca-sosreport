@@ -17,9 +17,12 @@ class Rdma(Plugin, IndependentPlugin):
 
     plugin_name = "rdma"
     profiles = ('hardware',)
-    packages = ('iproute2', 'iproute', 'mlnx-iproute2')
+    packages = ('iproute2', 'iproute', 'mlnx-iproute2',
+                'mlnx-ofed-kernel-utils')
 
     def setup(self):
+
+        self.add_cmd_output("ibdev2netdev")
 
         rdma_cmds = [
             "dev show",
