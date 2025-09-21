@@ -44,6 +44,9 @@ class Infiniband(Plugin, IndependentPlugin):
             "perfquery"
         ]
         ib_sysdir = "/sys/class/infiniband/"
+
+        self.add_copy_spec(f"{ib_sysdir}*/device/")
+
         ib_devs = self.listdir(ib_sysdir) if self.path_isdir(ib_sysdir) else []
         for ibdev in ib_devs:
             # Skip OPA hardware, as infiniband-diags tools does not understand
