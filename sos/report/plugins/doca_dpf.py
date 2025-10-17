@@ -8,6 +8,7 @@
 #
 # See the LICENSE file in the source distribution for further information.
 
+import json
 import os
 from sos.report.plugins import (Plugin, RedHatPlugin, DebianPlugin,
                                 UbuntuPlugin, PluginOpt)
@@ -150,6 +151,123 @@ class DocaDpf(Plugin):
                                 f'{k_cmd} describe {res} {item}',
                                 subdir=f'cluster-info/{nspace}/{res}'
                             )
+
+    def _discover_dpu_clusters(self):
+        """Discover all dpucluster objects in the host cluster.
+        
+        Returns a list of dicts with cluster name and namespace.
+        """
+        result = self.collect_cmd_output(
+            f"{self.kube_cmd} get dpucluster -A -o json",
+            subdir='cluster-info'
+        )
+        
+        if result['status'] != 0:
+            self._log_warn("Failed to discover DPU clusters")
+            return []
+        
+        try:
+            data = json.loads(result['output'])
+            clusters = []
+            for item in data.get('items', []):
+                cluster_name = item['metadata']['name']
+                namespace = item['metadata']['namespace']
+                clusters.append({
+                    'name': cluster_name,
+                    'namespace': namespace
+                })
+            
+            self._log_info(f"Discovered {len(clusters)} DPU cluster(s)")
+            return clusters
+        except (json.JSONDecodeError, KeyError) as e:
+            self._log_warn(f"Failed to parse DPU clusters: {e}")
+            return []
+
+    def _collect_dpu_cluster_resources(self, cluster_info):
+        """Collect resources from a single DPU cluster.
+        
+        cluster_info: Dict with 'name' and 'namespace' keys
+        """
+        cluster_name = cluster_info['name']
+        namespace = cluster_info['namespace']
+        # expected secret name to be found in the namespace
+        secret_name = f"{cluster_name}-admin-kubeconfig"
+        subdir_base = f'dpu-clusters/{namespace}/{cluster_name}'
+
+        # Create unique temp kubeconfig path
+        mktemp_ret = self.exec_cmd('mktemp /tmp/sos-dpu-kc.XXXXXX')
+        if mktemp_ret['status'] != 0:
+            self._log_warn(
+                f"Failed to create temporary kubeconfig for {cluster_name}"
+            )
+            return
+        kc_path = mktemp_ret['output'].strip()
+
+        extract_cmd = (
+            f"{self.kube_cmd} get secret {secret_name} -n {namespace} "
+            f"-o jsonpath='{{.data.admin\\.conf}}' | base64 -d > {kc_path}"
+        )
+        extract_result = self.exec_cmd(extract_cmd)
+        if extract_result['status'] != 0:
+            self._log_warn(
+                f"Failed to retrieve kubeconfig for DPU cluster "
+                f"{cluster_name} in namespace {namespace}"
+            )
+            self.exec_cmd(f"rm -f {kc_path}")
+            return
+
+        dpu_kube_cmd = f"kubectl --kubeconfig={kc_path} --request-timeout=10s"
+        kns_result = self.collect_cmd_output(
+            f"{dpu_kube_cmd} get namespaces -o json",
+            subdir=subdir_base
+        )
+
+        if kns_result['status'] != 0:
+            self._log_warn(f"Failed to access DPU cluster {cluster_name}")
+            self.exec_cmd(f"rm -f {kc_path}")
+            return
+
+        try:
+            ns_data = json.loads(kns_result['output'])
+            namespaces = [n['metadata']['name'] for n in ns_data.get('items', [])]
+        except (json.JSONDecodeError, KeyError) as e:
+            self._log_warn(
+                f"Failed to parse namespaces for {cluster_name}: {e}"
+            )
+            self.exec_cmd(f"rm -f {kc_path}")
+            return
+
+        # Collect resources from each namespace
+        for nspace in namespaces:
+            nspace_arg = f'--namespace={nspace}'
+            if self.get_option('all'):
+                k_cmd = (
+                    f"{dpu_kube_cmd} get -o json {nspace_arg} --ignore-not-found"
+                )
+                for res in self.resources:
+                    self.add_cmd_output(
+                        f"{k_cmd} {res}",
+                        subdir=f"{subdir_base}/{nspace}"
+                    )
+
+            if self.get_option('describe'):
+                k_base = f"{dpu_kube_cmd} {nspace_arg} --ignore-not-found"
+                for res in self.resources:
+                    ret = self.exec_cmd(f"{k_base} get {res}")
+                    if ret['status'] == 0:
+                        items = [
+                            l.split()[0] for l in ret['output'].splitlines()[1:]
+                            if l.strip()
+                        ]
+                        for item in items:
+                            self.add_cmd_output(
+                                f"{k_base} describe {res} {item}",
+                                subdir=f"{subdir_base}/{nspace}/{res}"
+                            )
+
+        # Clean up temporary kubeconfig
+        self.exec_cmd(f"rm -f {kc_path}")
+        self._log_info(f"Collected resources from DPU cluster {cluster_name}")
 
 
 class RedHatKubernetes(DocaDpf, RedHatPlugin):
