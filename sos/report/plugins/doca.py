@@ -36,6 +36,7 @@ class Doca(Plugin, IndependentPlugin):
         self.add_cmd_output([
             'bf-info',      # collect bfb info, installed with doca-extra
             'doca-info',    # collect doca-host info
+            'doca-hugepages show',  # collect hugepages info
         ])
 
         doca_caps = '/opt/mellanox/doca/tools/doca_caps'
