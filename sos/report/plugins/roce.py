@@ -40,6 +40,18 @@ class RoCE(Plugin, IndependentPlugin):
                 skip_cma_roce = True
 
             # dump ECN configuration
+            netsys = IB_SYS_DIR + ib + "/device/net"
+            for netdev in self.listdir(netsys):
+
+                # dump roce_np
+                roce_np = netsys + "/" + netdev + "/ecn/roce_np"
+                self.add_copy_spec([roce_np])
+
+                # dump roce_rp
+                roce_rp = netsys + "/" + netdev + "/ecn/roce_rp"
+                self.add_copy_spec([roce_rp])
+
+                self.add_cmd_output(f"mlnx_qos -i {netdev}")
 
             for port in self.listdir(IB_SYS_DIR + ib + "/ports"):
                 # skip Infiniband and IWARP devices
@@ -69,21 +81,6 @@ class RoCE(Plugin, IndependentPlugin):
                 # dump gid attributes
                 gid_attrs = IB_SYS_DIR + ib + "/ports/" + port + "/gid_attrs"
                 self.add_copy_spec([gid_attrs])
-
-                # dump ECN configuration
-
-                netsys = IB_SYS_DIR + ib + "/device/net"
-                for netdev in self.listdir(netsys):
-
-                    # dump roce_np
-                    roce_np = netsys + "/" + netdev + "/ecn/roce_np"
-                    self.add_copy_spec([roce_np])
-
-                    # dump roce_rp
-                    roce_rp = netsys + "/" + netdev + "/ecn/roce_rp"
-                    self.add_copy_spec([roce_rp])
-
-                    self.add_cmd_output(f"mlnx_qos -i {netdev}")
 
                 if not skip_cma_roce:
                     # cma roce mode
