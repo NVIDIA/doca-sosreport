@@ -8,7 +8,7 @@ BuildArch: noarch
 Url: https://github.com/sosreport/sos
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
-Requires: python3-pexpect
+%global __requires_exclude ^python.*dist\\(pexpect\\)
 %if 0%{?rhel} && 0%{?rhel} < 10
 Requires: python3-setuptools
 %else
@@ -68,6 +68,8 @@ install -m 644 sos-nvidia.conf %{buildroot}%{_sysconfdir}/%{sosname}/sos-nvidia.
 install -m 644 sos-nvdebug.conf %{buildroot}%{_sysconfdir}/%{sosname}/sos-nvdebug.conf
 install -m 644 tmpfiles/tmpfilesd-sos-rh.conf %{buildroot}%{_tmpfilesdir}/%{sosname}.conf
 
+# This removes the docs installed by python setup.py to prevent the "unpackaged files" error
+rm -rf %{buildroot}/usr/share/doc/doca-sosreport/
 rm -rf %{buildroot}/usr/config/
 
 %find_lang %{sosname} || echo 0
