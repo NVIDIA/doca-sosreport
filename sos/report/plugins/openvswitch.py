@@ -104,8 +104,12 @@ class OpenVSwitch(Plugin):
             f"{self.actl} lacp/show-stats",
             # Capture coverage stats"
             f"{self.actl} coverage/show",
-            # Capture cached routes
+            # Capture cached main routes
             f"{self.actl} ovs/route/show",
+            # Capture cached router rules
+            f"{self.actl} ovs/route/rule/show",
+            # Capture cached routes in all tables
+            f"{self.actl} ovs/route/show table=all",
             # Capture tnl arp table"
             f"{self.actl} tnl/arp/show",
             # Capture a list of listening ports"
