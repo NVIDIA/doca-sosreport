@@ -8,11 +8,9 @@ BuildArch: noarch
 Url: https://github.com/sosreport/sos
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
-%global __requires_exclude ^python.*dist\\(pexpect\\)
+%global __requires_exclude ^python.*dist\\(pexpect|packaging\\)
 %if 0%{?rhel} && 0%{?rhel} < 10
 Requires: python3-setuptools
-%else
-Requires: python3-packaging
 %endif
 Recommends: python3-file-magic
 # Mandatory just for uploading to a SFTP server:
