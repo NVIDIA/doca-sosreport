@@ -1,4 +1,5 @@
 import os
+import re
 
 from .base_collector import Collector
 from ..tools import (
@@ -15,6 +16,40 @@ class CableCollector(Collector):
             plugin.archive.get_archive_path(),
             plugin._make_command_filename(exe=file_name)
         )
+
+    def _collect_pcie_link_details(self, plugin, tool, file_base, ctx):
+        rc, output = tool.show_links_pcie(
+            filename=f"{file_base}--show_links_--port_type_PCIE"
+        )
+
+        if rc != 0 or not output:
+            plugin._log_info(
+                f"Skipping PCIe link details for {ctx.device} (rc={rc})"
+            )
+            return
+
+        pattern = re.compile(
+            r":\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)",
+            re.IGNORECASE,
+        )
+
+        for line in output.splitlines():
+            match = pattern.search(line.strip())
+
+            if not match:
+                continue
+
+            depth, pcie_index, node = (int(m) for m in match.groups())
+
+            tool.show_links_pcie_details(
+                depth=depth,
+                pcie_index=pcie_index,
+                node=node,
+                filename=(
+                    f"{file_base}--show_links_--port_type_PCIE_"
+                    f"depth_{depth}_pcie_index_{pcie_index}_node_{node}_-c_-e"
+                )
+            )
 
     def _collect_link_data(self, plugin, tool, prefix, ctx):
         file_base = f"{prefix}_{ctx.bdf}_"
@@ -52,9 +87,7 @@ class CableCollector(Collector):
         )
 
         if ctx.primary:
-            tool.show_links_pcie(
-                filename=f"{file_base}--show_links_--port_type_PCIE"
-            )
+            self._collect_pcie_link_details(plugin, tool, file_base, ctx)
 
             amber_file_name = f"{file_base}--amber_collect"
             amber_csv_path = self.__generate_archive_file_path(
