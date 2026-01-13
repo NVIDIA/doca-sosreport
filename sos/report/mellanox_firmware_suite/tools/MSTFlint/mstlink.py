@@ -57,6 +57,13 @@ class MstLinkTool(BaseTool):
             filename=filename
         )
 
+    def show_links_pcie_details(self, depth, pcie_index, node, filename=None):
+        return self.execute_cmd(
+            f"mstlink -d {self.ctx.device} --port_type PCIE "
+            f"--depth {depth} --pcie_index {pcie_index} --node {node} -c -e",
+            filename=filename
+        )
+
     def amber_collect(self, path, filename=None):
         return self.execute_cmd(
             f"mstlink -d {self.ctx.device} --amber_collect {path}",
