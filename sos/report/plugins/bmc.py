@@ -9,7 +9,6 @@
 
 import json
 import os
-import shutil
 import tempfile
 import time
 from pathlib import Path
@@ -55,9 +54,11 @@ class Bmc(Plugin, IndependentPlugin):
 
     def setup(self):
         """Trigger BMC dump via Redfish, poll for completion, and collect."""
-        bmc_ip = self.get_option('bmc_ip')
-        bmc_user = self.get_option('bmc_user')
-        bmc_password = self.get_option('bmc_password')
+        bmc_ip = self.get_option('bmc_ip') or os.environ.get('BMC_IP', '')
+        bmc_user = (self.get_option('bmc_user') or
+                    os.environ.get('BMC_USER', ''))
+        bmc_password = (self.get_option('bmc_password') or
+                        os.environ.get('BMC_PASSWORD', ''))
 
         has_any = any([bmc_ip, bmc_user, bmc_password])
         has_all = all([bmc_ip, bmc_user, bmc_password])
@@ -65,16 +66,19 @@ class Bmc(Plugin, IndependentPlugin):
         if has_any and not has_all:
             if not bmc_ip:
                 self._log_warn(
-                    "BMC IP not provided. Use: -k bmc.bmc_ip=X.X.X.X"
+                    "BMC IP not provided. Use: -k bmc.bmc_ip=X.X.X.X "
+                    "or set BMC_IP env var"
                 )
             if not bmc_user:
                 self._log_warn(
-                    "BMC user not provided. Use: -k bmc.bmc_user=USER"
+                    "BMC user not provided. Use: -k bmc.bmc_user=USER "
+                    "or set BMC_USER env var"
                 )
             if not bmc_password:
                 self._log_warn(
                     "BMC password not provided. "
-                    "Use: -k bmc.bmc_password=SECRET"
+                    "Use: -k bmc.bmc_password=SECRET or set BMC_PASSWORD "
+                    "env var"
                 )
             return
 
@@ -90,10 +94,7 @@ class Bmc(Plugin, IndependentPlugin):
                 netrc_file.write(f"password {bmc_password}\n")
             os.chmod(netrc_path, 0o600)
 
-            dump_dir = Path('/tmp/bmc_sos')
-            if dump_dir.exists():
-                shutil.rmtree(dump_dir)
-            dump_dir.mkdir(parents=True, exist_ok=True)
+            dump_dir = Path(tempfile.mkdtemp(prefix='bmc_sos_'))
 
             redfish_base = f"https://{bmc_ip}/redfish/v1"
 
@@ -199,7 +200,10 @@ class Bmc(Plugin, IndependentPlugin):
             dump_id = new_ids[0]
             self._log_info(f"Found dump entry ID: {dump_id}")
 
-            local_dump = f"/tmp/bmc_dump_{dump_id}.tar.xz"
+            dump_fd, local_dump = tempfile.mkstemp(
+                prefix='bmc_dump_', suffix='.tar.xz'
+            )
+            os.close(dump_fd)  # Close FD, curl will create the file
             download_url = (
                 f"{redfish_base}/Managers/Bluefield_BMC/LogServices/"
                 f"Dump/Entries/{dump_id}/attachment"
