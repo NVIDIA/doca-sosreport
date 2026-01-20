@@ -15,19 +15,20 @@ from pathlib import Path
 from sos.report.plugins import Plugin, IndependentPlugin, PluginOpt
 
 
-class Bmc(Plugin, IndependentPlugin):
+class DpuBmc(Plugin, IndependentPlugin):
     """
-    Collects BMC diagnostic data
+    Collects DPU BMC diagnostic data
 
     Triggers a BMC dump, downloads and extracts it into the sosreport.
     BMC dump creation typically takes 5-10 minutes.
 
     Credentials must be provided via plugin options:
-      -k bmc.bmc_ip=IP -k bmc.bmc_user=USER -k bmc.bmc_password=PASS
+      -k dpu_bmc.bmc_ip=IP -k dpu_bmc.bmc_user=USER
+      -k dpu_bmc.bmc_password=PASS
     """
 
-    short_desc = 'BMC dump collection'
-    plugin_name = 'bmc'
+    short_desc = 'DPU BMC dump collection'
+    plugin_name = 'dpu_bmc'
     profiles = ('hardware',)
     packages = ('curl',)
 
@@ -66,19 +67,19 @@ class Bmc(Plugin, IndependentPlugin):
         if has_any and not has_all:
             if not bmc_ip:
                 self._log_warn(
-                    "BMC IP not provided. Use: -k bmc.bmc_ip=X.X.X.X "
+                    "BMC IP not provided. Use: -k dpu_bmc.bmc_ip=X.X.X.X "
                     "or set BMC_IP env var"
                 )
             if not bmc_user:
                 self._log_warn(
-                    "BMC user not provided. Use: -k bmc.bmc_user=USER "
+                    "BMC user not provided. Use: -k dpu_bmc.bmc_user=USER "
                     "or set BMC_USER env var"
                 )
             if not bmc_password:
                 self._log_warn(
                     "BMC password not provided. "
-                    "Use: -k bmc.bmc_password=SECRET or set BMC_PASSWORD "
-                    "env var"
+                    "Use: -k dpu_bmc.bmc_password=SECRET or set "
+                    "BMC_PASSWORD env var"
                 )
             return
 
