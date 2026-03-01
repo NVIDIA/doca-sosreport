@@ -7,38 +7,47 @@
 #
 # See the LICENSE file in the source distribution for further information.
 
+import ipaddress
 import json
 import os
+import re
 import tempfile
 import time
 from pathlib import Path
 from sos.report.plugins import Plugin, IndependentPlugin, PluginOpt
 
 
-class DpuBmc(Plugin, IndependentPlugin):
+class BluefieldBmc(Plugin, IndependentPlugin):
     """
-    Collects DPU BMC diagnostic data
+    Collects Bluefield BMC diagnostic data
 
     Triggers a BMC dump, downloads and extracts it into the sosreport.
     BMC dump creation typically takes 5-10 minutes.
 
-    Credentials must be provided via plugin options:
-      -k dpu_bmc.bmc_ip=IP -k dpu_bmc.bmc_user=USER
-      -k dpu_bmc.bmc_password=PASS
+    BMC IP is always extracted from ipmitool.
+
+    Credentials can be extracted from EFI variables on the Bluefield when
+    enabled, or provided via plugin options or environment variables:
+      -k bluefield_bmc.bmc_user=USER -k bluefield_bmc.bmc_password=PASS
+      or set BMC_USER and BMC_PASSWORD environment variables.
+
+    EFI credential extraction is supported only on Bluefield-3 (BF3); on
+    other Bluefield versions credentials must be provided via options or
+    environment variables.
     """
 
-    short_desc = 'DPU BMC dump collection'
-    plugin_name = 'dpu_bmc'
+    short_desc = 'Bluefield BMC dump collection'
+    plugin_name = 'bluefield_bmc'
     profiles = ('hardware',)
-    packages = ('curl',)
+    packages = ('curl', 'ipmitool')
 
     option_list = [
-        PluginOpt('bmc_ip', val_type=str,
-                  desc='BMC IP address (required)'),
         PluginOpt('bmc_user', val_type=str,
-                  desc='BMC username (required)'),
+                  desc='BMC username (required if not extracted from '
+                       'EFI variables)'),
         PluginOpt('bmc_password', val_type=str,
-                  desc='BMC password (required)'),
+                  desc='BMC password (required if not extracted from '
+                       'EFI variables)'),
     ]
 
     def _parse_dump_ids(self, output):
@@ -53,37 +62,118 @@ class DpuBmc(Plugin, IndependentPlugin):
             self._log_warn(f"Could not parse dump entries: {e}")
             return []
 
+    def _get_bmc_ip_from_ipmitool(self):
+        """Extract BMC IP address from ipmitool."""
+        # ipmitool lan print uses the default channel (1), where the BMC is.
+        cmd = "ipmitool lan print"
+        result = self.exec_cmd(cmd, timeout=30)
+        if result['status'] == 0:
+            # Look for "IP Address" line
+            for line in result['output'].split('\n'):
+                if 'IP Address' in line and 'Source' not in line:
+                    match = re.search(r'(\d+\.\d+\.\d+\.\d+)', line)
+                    if match:
+                        candidate = match.group(1)
+                        try:
+                            parsed = ipaddress.ip_address(candidate)
+                        except ValueError:
+                            continue
+                        if parsed.is_unspecified:
+                            continue
+                        return candidate
+        return None
+
+    def _get_efi_credentials(self):
+        """Extract BMC credentials from EFI variables."""
+        efi_base = Path('/sys/firmware/efi/efivars')
+        if not efi_base.exists():
+            return None, None
+
+        # Find EFI variables by searching for BMC-related files
+        creds_flag = None
+        username_file = None
+        password_file = None
+
+        try:
+            for efi_var in efi_base.iterdir():
+                var_name = efi_var.name
+                if 'DPUBMCRfshCrdntlsFnd' in var_name:
+                    creds_flag = efi_var
+                elif 'DPUBMCUsername' in var_name:
+                    username_file = efi_var
+                elif 'DPUBMCPassword' in var_name:
+                    password_file = efi_var
+        except OSError:
+            return None, None
+
+        # Check if credentials flag is set
+        if not creds_flag or not creds_flag.exists():
+            return None, None
+
+        # Check flag value (skip 4-byte header, check if 5th byte is 0x01)
+        try:
+            with open(creds_flag, 'rb') as f:
+                flag_data = f.read()
+                if len(flag_data) < 5 or flag_data[4] != 0x01:
+                    return None, None
+        except (OSError, IndexError):
+            return None, None
+
+        username = None
+        if username_file and username_file.exists():
+            try:
+                with open(username_file, 'rb') as f:
+                    data = f.read()
+                    username = data[4:].decode('utf-8').rstrip('\0')
+            except (OSError, UnicodeDecodeError):
+                # EFI var unreadable or not valid UTF-8; skip username
+                pass
+
+        if username is None:
+            return None, None  # need both from EFI; skip if username failed
+
+        password = None
+        if password_file and password_file.exists():
+            try:
+                with open(password_file, 'rb') as f:
+                    data = f.read()
+                    password_bytes = data[4:]
+                    password = password_bytes.rstrip(b'\0').decode('utf-8')
+            except (OSError, UnicodeDecodeError):
+                # EFI var unreadable or not valid UTF-8; skip password
+                pass
+
+        if username and password:
+            return username, password
+        return None, None
+
     def setup(self):
         """Trigger BMC dump via Redfish, poll for completion, and collect."""
-        bmc_ip = self.get_option('bmc_ip') or os.environ.get('BMC_IP', '')
-        bmc_user = (self.get_option('bmc_user') or
-                    os.environ.get('BMC_USER', ''))
-        bmc_password = (self.get_option('bmc_password') or
-                        os.environ.get('BMC_PASSWORD', ''))
-
-        has_any = any([bmc_ip, bmc_user, bmc_password])
-        has_all = all([bmc_ip, bmc_user, bmc_password])
-
-        if has_any and not has_all:
-            if not bmc_ip:
-                self._log_warn(
-                    "BMC IP not provided. Use: -k dpu_bmc.bmc_ip=X.X.X.X "
-                    "or set BMC_IP env var"
-                )
-            if not bmc_user:
-                self._log_warn(
-                    "BMC user not provided. Use: -k dpu_bmc.bmc_user=USER "
-                    "or set BMC_USER env var"
-                )
-            if not bmc_password:
-                self._log_warn(
-                    "BMC password not provided. "
-                    "Use: -k dpu_bmc.bmc_password=SECRET or set "
-                    "BMC_PASSWORD env var"
-                )
+        bmc_ip = self._get_bmc_ip_from_ipmitool()
+        if not bmc_ip:
+            self._log_warn("BMC IP not found via ipmitool. Cannot proceed.")
             return
+        self._log_info(f"Extracted BMC IP from ipmitool: {bmc_ip}")
 
-        if not has_all:
+        # Credentials: either both from EFI or both from options/env vars
+        efi_user, efi_password = self._get_efi_credentials()
+        if efi_user and efi_password:
+            bmc_user = efi_user
+            bmc_password = efi_password
+            self._log_info("Extracted BMC credentials from EFI variables")
+        else:
+            bmc_user = (self.get_option('bmc_user') or
+                        os.environ.get('BMC_USER', ''))
+            bmc_password = (self.get_option('bmc_password') or
+                            os.environ.get('BMC_PASSWORD', ''))
+
+        if not bmc_user or not bmc_password:
+            self._log_warn(
+                "BMC credentials not provided. Use: "
+                "-k bluefield_bmc.bmc_user=USER "
+                "-k bluefield_bmc.bmc_password=PASSWORD or set "
+                "BMC_USER and BMC_PASSWORD env vars"
+            )
             return
 
         # Create temporary .netrc file to avoid credentials in ps output
