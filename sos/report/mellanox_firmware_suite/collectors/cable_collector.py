@@ -1,4 +1,3 @@
-import os
 import re
 
 from .base_collector import Collector
@@ -10,13 +9,6 @@ from ..tools import (
 
 
 class CableCollector(Collector):
-    @staticmethod
-    def __generate_archive_file_path(plugin, file_name):
-        return os.path.join(
-            plugin.archive.get_archive_path(),
-            plugin._make_command_filename(exe=file_name)
-        )
-
     def _collect_pcie_link_details(self, plugin, tool, file_base, ctx):
         rc, output = tool.show_links_pcie(
             filename=f"{file_base}--show_links_--port_type_PCIE"
@@ -24,7 +16,8 @@ class CableCollector(Collector):
 
         if rc != 0 or not output:
             plugin._log_info(
-                f"Skipping PCIe link details for {ctx.device} (rc={rc})"
+                f"Skipping PCIe link details for {ctx.effective_device} "
+                f"(rc={rc})"
             )
             return
 
@@ -90,7 +83,7 @@ class CableCollector(Collector):
             self._collect_pcie_link_details(plugin, tool, file_base, ctx)
 
             amber_file_name = f"{file_base}--amber_collect"
-            amber_csv_path = self.__generate_archive_file_path(
+            amber_csv_path = self._generate_archive_file_path(
                 plugin,
                 file_name=f"{amber_file_name}.csv"
             )
@@ -100,7 +93,7 @@ class CableCollector(Collector):
             )
 
             amber_pci_file_name = f"{file_base}--amber_collect_--pci"
-            amber_pci_csv_path = self.__generate_archive_file_path(
+            amber_pci_csv_path = self._generate_archive_file_path(
                 plugin,
                 file_name=f"{amber_pci_file_name}.csv"
             )

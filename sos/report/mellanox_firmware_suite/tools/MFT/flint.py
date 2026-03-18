@@ -1,12 +1,13 @@
-from ..base_tool import BaseTool
+from ..base_tool import BaseTool, supports_fwctl
 
 
 class FlintTool(BaseTool):
     @property
+    @supports_fwctl
     def is_secured_fw(self):
         if getattr(self, "_is_secured_cache", None) is None:
             rc, output = self.execute_cmd(
-                f"flint -d {self.ctx.device} q full",
+                f"flint -d {self.ctx.effective_device} q full",
                 cache=False,
                 get_cached=True
             )
@@ -27,14 +28,16 @@ class FlintTool(BaseTool):
             filename=filename
         )
 
+    @supports_fwctl
     def flint_query_full(self, filename=None):
         return self.execute_cmd(
-            f"flint -d {self.ctx.device} q full",
+            f"flint -d {self.ctx.effective_device} q full",
             filename=filename
         )
 
+    @supports_fwctl
     def flint_dump_config(self, filename=None):
         return self.execute_cmd(
-            f"flint -d {self.ctx.device} dc",
+            f"flint -d {self.ctx.effective_device} dc",
             filename=filename
         )
