@@ -1,6 +1,32 @@
 import re
+import functools
 
 from ..device_context import DeviceContext
+
+
+def supports_fwctl(func):
+    """
+    Temporarily override effective_device with fwctl.
+
+    When ctx.fwctl is set, effective_device resolves to
+    fwctl for the duration of the decorated call.
+    Apply to methods that pass ctx.effective_device as
+    the -d argument to CLI tools.
+    """
+
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if getattr(self.ctx, "fwctl", None) is not None:
+            self.ctx._effective_device = self.ctx.fwctl
+
+        try:
+            return func(self, *args, **kwargs)
+
+        finally:
+            if hasattr(self.ctx, "_effective_device"):
+                del self.ctx._effective_device
+
+    return wrapper
 
 
 class BaseTool(object):
@@ -26,7 +52,7 @@ class BaseTool(object):
 
         if rc != 0:
             self.plugin._log_info(
-                f"{cmd} failed for {self.ctx.device} (rc={rc})"
+                f"{cmd} failed for {self.ctx.effective_device} (rc={rc})"
             )
 
         if rc == 0 and cache:
