@@ -41,14 +41,15 @@ class BaseTool(object):
         cache=True,
         get_cached=True,
         key=None,
-        filename=None
+        filename=None,
+        subdir=None,
     ):
         cache_key = key or cmd
 
         if get_cached and cache_key in self.ctx.cache:
             return self.ctx.cache[cache_key]
 
-        rc, output = self._run_command(cmd, timeout, filename)
+        rc, output = self._run_command(cmd, timeout, filename, subdir=subdir)
 
         if rc != 0:
             self.plugin._log_info(
@@ -60,7 +61,7 @@ class BaseTool(object):
 
         return (rc, output)
 
-    def _run_command(self, cmd, timeout, filename):
+    def _run_command(self, cmd, timeout, filename, subdir=None):
         if filename is None:
             res = self.plugin.exec_cmd(cmd=cmd, timeout=timeout)
 
@@ -70,6 +71,7 @@ class BaseTool(object):
                 suggest_filename=filename,
                 timeout=timeout,
                 stderr=True,
+                subdir=subdir,
             )
 
         return res.get("status", 1), res.get("output", "")
