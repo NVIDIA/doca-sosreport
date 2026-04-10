@@ -30,5 +30,7 @@ class CollectorManager(object):
             CableCollector().run(self.plugin, ctx)
 
     def collect_pcc_info(self):
+        if not self.plugin.get_option("pcc", default=False):
+            return
         for ctx in self.device_contexts:
             PccCollector().run(self.plugin, ctx)
