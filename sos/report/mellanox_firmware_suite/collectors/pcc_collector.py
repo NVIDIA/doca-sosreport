@@ -9,7 +9,7 @@ from ..tools import (
     get_tool,
 )
 
-# mlxreg/mstreg --op uses string cmd_type values from the PPCC PRM.
+# mlxreg/mstreg --op uses string cmd_type values from the PPCC register.
 PpccCommandOptions = Dict[str, str]
 
 
@@ -25,7 +25,7 @@ class PpccCommand(str, Enum):
     ALGO_INFO_ARRAY = "0x10"
 
 
-class PPCCCollector(Collector):
+class PccCollector(Collector):
     _BASE_REGISTER_INDEXES = "local_port=1,pnat=0,lp_msb=0"
     _ALGO_SLOT_TEXT_INDEX_COUNT = 16
     _COMMAND_OUTPUT_LOG_MAX_CHARS = 4000
@@ -46,7 +46,7 @@ class PPCCCollector(Collector):
     @staticmethod
     def _register_indexes_for_algo_slot(algo_slot_index: int) -> str:
         return (
-            f"{PPCCCollector._BASE_REGISTER_INDEXES},"
+            f"{PccCollector._BASE_REGISTER_INDEXES},"
             f"algo_slot={algo_slot_index}"
         )
 
@@ -312,7 +312,7 @@ class PPCCCollector(Collector):
 
     def _collect_ppcc_data(self, plugin, tool, tool_name: str, ctx) -> None:
         collection_file_prefix = f"{tool_name}_{ctx.bdf}_"
-        output_subdir = f"{tool_name}_pcc"
+        output_subdir = f"pcc_info"
         device_label = ctx.device
 
         return_code, output = self._ppcc_get(
