@@ -14,6 +14,7 @@ PpccCommandOptions = Dict[str, str]
 
 
 class PpccCommand(str, Enum):
+    GET_ALGO_INFO = "0x0"
     GET_ALGO_STATUS = "0x3"
     GET_NUM_PARAMS = "0x4"
     GET_PARAM_INFO = "0x5"
@@ -28,6 +29,7 @@ class PpccCommand(str, Enum):
 class PccCollector(Collector):
     _BASE_REGISTER_INDEXES = "local_port=1,pnat=0,lp_msb=0"
     _ALGO_SLOT_TEXT_INDEX_COUNT = 16
+    _ALGO_SLOTS_COLLECT_STATUS_CMD_ONLY = frozenset({15})
     _COMMAND_OUTPUT_LOG_MAX_CHARS = 4000
 
     _TEXT_TABLE_LINE_PATTERN = re.compile(
@@ -36,6 +38,10 @@ class PccCollector(Collector):
     )
     _VALUE_FIELD_PATTERN = re.compile(
         r"^\s*value\s*\|\s*0x([0-9a-fA-F]+)",
+        re.MULTILINE | re.IGNORECASE,
+    )
+    _COUNTER_EN_FIELD_PATTERN = re.compile(
+        r"^\s*counter_en\s*\|\s*0x([0-9a-fA-F]+)",
         re.MULTILINE | re.IGNORECASE,
     )
 
@@ -86,6 +92,15 @@ class PccCollector(Collector):
         if not match:
             return None
         return int(match.group(1), 16)
+
+    @classmethod
+    def _counter_en_enabled(cls, mlxreg_output: str) -> Optional[bool]:
+        """LSB of counter_en from algo status dump; None if field missing."""
+        match = cls._COUNTER_EN_FIELD_PATTERN.search(mlxreg_output)
+        if not match:
+            return None
+        v = int(match.group(1), 16)
+        return (v & 1) != 0
 
     @classmethod
     def _clip_command_output(cls, text: str) -> str:
@@ -160,7 +175,7 @@ class PccCollector(Collector):
         )
         for counter_index in range(counter_count):
             counter_indexes = (
-                f"{register_indexes},algo_counter_index={counter_index}"
+                f"{register_indexes},algo_param_index={counter_index}"
             )
             self._ppcc_get(
                 plugin,
@@ -275,6 +290,28 @@ class PccCollector(Collector):
         )
         device_label = ctx.device
 
+        if algo_slot_index in self._ALGO_SLOTS_COLLECT_STATUS_CMD_ONLY:
+            self._ppcc_get(
+                plugin,
+                device_label,
+                tool,
+                collection_file_prefix,
+                output_subdir,
+                self._op_for_cmd_type(PpccCommand.GET_ALGO_STATUS),
+                register_indexes,
+            )
+            return
+
+        self._ppcc_get(
+            plugin,
+            device_label,
+            tool,
+            collection_file_prefix,
+            output_subdir,
+            self._op_for_cmd_type(PpccCommand.GET_ALGO_INFO),
+            register_indexes,
+        )
+
         return_code, output = self._ppcc_get(
             plugin,
             device_label,
@@ -291,15 +328,17 @@ class PccCollector(Collector):
         if algo_status is not None and algo_status != 1:
             return
 
-        self._collect_counters_for_algo_slot(
-            plugin,
-            tool,
-            collection_file_prefix,
-            output_subdir,
-            ctx,
-            algo_slot_index,
-            register_indexes,
-        )
+        counter_en_on = self._counter_en_enabled(output)
+        if counter_en_on is not False:
+            self._collect_counters_for_algo_slot(
+                plugin,
+                tool,
+                collection_file_prefix,
+                output_subdir,
+                ctx,
+                algo_slot_index,
+                register_indexes,
+            )
         self._collect_params_for_algo_slot(
             plugin,
             tool,
@@ -327,7 +366,10 @@ class PccCollector(Collector):
         if return_code != 0:
             return
 
-        present_algo_slots = self._get_algo_slot_indices(output)
+        present_algo_slots = sorted(
+            frozenset(self._get_algo_slot_indices(output))
+            | self._ALGO_SLOTS_COLLECT_STATUS_CMD_ONLY,
+        )
         if not present_algo_slots:
             return
 
