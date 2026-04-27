@@ -20,7 +20,7 @@ class LogsPluginTest(StageOneReportTest):
     :avocado: tags=stageone
     """
 
-    sos_cmd = '-o logs --all-logs'
+    sos_cmd = '-o logs --all-logs -k logs.journal-since=all'
 
     def test_journalctl_collections(self):
         self.assertFileCollected('sos_commands/logs/journalctl_--disk-usage')
@@ -29,6 +29,51 @@ class LogsPluginTest(StageOneReportTest):
 
     def test_journal_runtime_collected(self):
         self.assertFileGlobInArchive('/var/log/journal/*')
+
+
+class JournalSinceFiniteTest(StageOneReportTest):
+    """Ensure a finite `journal-since` value reaches the journalctl
+    invocation and shows up in the captured filename.
+
+    :avocado: tags=stageone
+    """
+
+    sos_cmd = '-o logs -k logs.journal-since=-24hours'
+
+    def test_since_arg_in_journalctl_filename(self):
+        self.assertFileGlobInArchive(
+            'sos_commands/logs/journalctl_--no-pager_*--since_-24hours*'
+        )
+
+
+class JournalSinceAllTest(StageOneReportTest):
+    """Ensure `journal-since=all` disables the time bound, no --since
+    argument should appear in any journalctl capture filename.
+
+    Subclasses re-exercise this assertion against other inputs that
+    should produce the same outcome (default value, empty string, etc.)
+    by overriding sos_cmd, see JournalSinceDefaultTest below.
+
+    :avocado: tags=stageone
+    """
+
+    sos_cmd = '-o logs -k logs.journal-since=all'
+
+    def test_no_plugin_since_in_journalctl_filename(self):
+        self.assertFileGlobNotInArchive(
+            'sos_commands/logs/journalctl_*--since*'
+        )
+
+
+class JournalSinceDefaultTest(JournalSinceAllTest):
+    """Same expectation as JournalSinceAllTest, exercised via the
+    plugin default ('all') instead of an explicit -k flag, locks in
+    the default so a future change to it can't slip through silently.
+
+    :avocado: tags=stageone
+    """
+
+    sos_cmd = '-o logs'
 
 
 class JournalSizeLimitTest(StageTwoReportTest):
