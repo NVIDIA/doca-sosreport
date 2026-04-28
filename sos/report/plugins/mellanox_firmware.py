@@ -9,7 +9,7 @@
 import re
 import shutil
 
-from sos.report.plugins import Plugin, IndependentPlugin
+from sos.report.plugins import Plugin, IndependentPlugin, PluginOpt
 from sos.report.mellanox_firmware_suite.tools import FirmwareTools
 from sos.report.mellanox_firmware_suite.device_context import DeviceContext
 from sos.report.mellanox_firmware_suite.collectors.collector_manager import (
@@ -39,6 +39,17 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
 
     packages = ("mst", "mstflint")
     profiles = ("hardware", "system")
+
+    option_list = [
+        PluginOpt(
+            "pcc",
+            default=False,
+            desc=(
+                "Collect PCC-related PPCC register dumps via mlxreg/mstreg; "
+                "can be slow on large systems"
+            ),
+        ),
+    ]
 
     def __init__(self, commons):
         super().__init__(commons=commons)
