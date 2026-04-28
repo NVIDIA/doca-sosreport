@@ -152,7 +152,7 @@ class PccCollector(Collector):
         algo_slot_index: int,
         register_indexes: str,
     ) -> None:
-        device_label = ctx.device
+        device_label = ctx.pci
 
         return_code, output = self._ppcc_get(
             plugin,
@@ -210,7 +210,7 @@ class PccCollector(Collector):
         algo_slot_index: int,
         register_indexes: str,
     ) -> None:
-        device_label = ctx.device
+        device_label = ctx.pci
 
         return_code, output = self._ppcc_get(
             plugin,
@@ -288,7 +288,7 @@ class PccCollector(Collector):
         register_indexes = self._register_indexes_for_algo_slot(
             algo_slot_index
         )
-        device_label = ctx.device
+        device_label = ctx.pci
 
         if algo_slot_index in self._ALGO_SLOTS_COLLECT_STATUS_CMD_ONLY:
             self._ppcc_get(
@@ -352,7 +352,7 @@ class PccCollector(Collector):
     def _collect_ppcc_data(self, plugin, tool, tool_name: str, ctx) -> None:
         collection_file_prefix = f"{tool_name}_{ctx.bdf}_"
         output_subdir = f"pcc_info"
-        device_label = ctx.device
+        device_label = ctx.pci
 
         return_code, output = self._ppcc_get(
             plugin,
