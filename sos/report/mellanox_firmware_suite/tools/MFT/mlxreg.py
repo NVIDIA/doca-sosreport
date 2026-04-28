@@ -10,10 +10,11 @@ class MlxregTool(BaseTool):
             filename=filename
         )
 
+    @supports_fwctl
     def ppcc_get(self, op, indexes, filename=None, subdir=None):
         op_str = ",".join(f"{k}={v}" for k, v in op.items())
         return self.execute_cmd(
-            f'mlxreg -d {self.ctx.device} --reg_name PPCC --get '
+            f'mlxreg -d {self.ctx.effective_device} --reg_name PPCC --get '
             f'--op "{op_str}" --indexes "{indexes}"',
             filename=filename,
             subdir=subdir,
