@@ -337,7 +337,6 @@ class PccCollector(Collector):
                 register_indexes,
             )
         self._collect_params_for_algo_slot(
-   
             plugin,
             tool,
             collection_file_prefix,
