@@ -45,8 +45,7 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
             "pcc",
             default=False,
             desc=(
-                "Collect PCC-related PPCC register dumps via mlxreg/mstreg; "
-                "can be slow on large systems"
+                "Collect PCC-related information"
             ),
         ),
     ]
