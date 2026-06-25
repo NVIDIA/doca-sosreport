@@ -66,6 +66,7 @@ class PccCollector(Collector):
             f"{key}_{value}" for key, value in command_options.items()
         )
         index_part = register_indexes.replace("=", "_").replace(",", "_")
+
         return (
             f"{collection_file_prefix}--reg_name_PPCC_--get_"
             f"--op_{op_part}_--indexes_{index_part}"
@@ -75,11 +76,15 @@ class PccCollector(Collector):
     def _get_algo_slot_indices(cls, mlxreg_output: str) -> List[int]:
         slot_count = cls._ALGO_SLOT_TEXT_INDEX_COUNT
         values_per_slot = [0] * slot_count
+
         for match in cls._TEXT_TABLE_LINE_PATTERN.finditer(mlxreg_output):
             text_index = int(match.group(1))
+
             if text_index >= slot_count:
                 continue
+
             values_per_slot[text_index] = int(match.group(2), 16)
+
         return [
             text_index
             for text_index, value in enumerate(values_per_slot)
@@ -89,27 +94,36 @@ class PccCollector(Collector):
     @classmethod
     def _extract_value_field(cls, mlxreg_output: str) -> Optional[int]:
         match = cls._VALUE_FIELD_PATTERN.search(mlxreg_output)
+
         if not match:
             return None
+
         return int(match.group(1), 16)
 
     @classmethod
     def _counter_en_enabled(cls, mlxreg_output: str) -> Optional[bool]:
         """LSB of counter_en from algo status dump; None if field missing."""
         match = cls._COUNTER_EN_FIELD_PATTERN.search(mlxreg_output)
+
         if not match:
             return None
+
         v = int(match.group(1), 16)
+
         return (v & 1) != 0
 
     @classmethod
     def _clip_command_output(cls, text: str) -> str:
         raw = (text or "").strip()
+
         if not raw:
             return "(empty)"
+
         limit = cls._COMMAND_OUTPUT_LOG_MAX_CHARS
+
         if len(raw) <= limit:
             return raw
+
         return raw[:limit]
 
     def _ppcc_get(
@@ -122,24 +136,29 @@ class PccCollector(Collector):
         command_options: PpccCommandOptions,
         register_indexes: str,
     ) -> Tuple[int, str]:
+        filename = self._make_filename_for_ppcc_get(
+            collection_file_prefix,
+            command_options,
+            register_indexes,
+        )
+
         return_code, output = tool.ppcc_get(
             command_options,
             register_indexes,
-            filename=self._make_filename_for_ppcc_get(
-                collection_file_prefix,
-                command_options,
-                register_indexes,
-            ),
+            filename=filename,
             subdir=output_subdir,
         )
+
         if return_code != 0:
             op = command_options.get("cmd_type", "?")
+            clipped_output = self._clip_command_output(output)
             plugin._log_info(
                 "PPCC command failed "
                 f"device={device_label} cmd_type={op} "
                 f"indexes={register_indexes!r} rc={return_code} "
-                f"output:\n{self._clip_command_output(output)}"
+                f"output:\n{clipped_output}"
             )
+
         return return_code, output
 
     def _collect_counters_for_algo_slot(
@@ -152,6 +171,9 @@ class PccCollector(Collector):
         register_indexes: str,
     ) -> None:
         device_label = ctx.pci
+        get_num_counters_op = self._op_for_cmd_type(
+            PpccCommand.GET_NUM_COUNTERS
+        )
 
         return_code, output = self._ppcc_get(
             plugin,
@@ -159,19 +181,22 @@ class PccCollector(Collector):
             tool,
             collection_file_prefix,
             output_subdir,
-            self._op_for_cmd_type(PpccCommand.GET_NUM_COUNTERS),
+            get_num_counters_op,
             register_indexes,
         )
+
         if return_code != 0:
             return
 
         counter_count = self._extract_value_field(output)
+
         if counter_count is None:
             return
 
         counter_info_op = self._op_for_cmd_type(
             PpccCommand.GET_COUNTER_INFO
         )
+
         for counter_index in range(counter_count):
             counter_indexes = (
                 f"{register_indexes},algo_param_index={counter_index}"
@@ -189,13 +214,17 @@ class PccCollector(Collector):
         if counter_count == 0:
             return
 
+        bulk_get_counters_op = self._op_for_cmd_type(
+            PpccCommand.BULK_GET_COUNTERS
+        )
+
         self._ppcc_get(
             plugin,
             device_label,
             tool,
             collection_file_prefix,
             output_subdir,
-            self._op_for_cmd_type(PpccCommand.BULK_GET_COUNTERS),
+            bulk_get_counters_op,
             register_indexes,
         )
 
@@ -209,6 +238,9 @@ class PccCollector(Collector):
         register_indexes: str,
     ) -> None:
         device_label = ctx.pci
+        get_num_params_op = self._op_for_cmd_type(
+            PpccCommand.GET_NUM_PARAMS
+        )
 
         return_code, output = self._ppcc_get(
             plugin,
@@ -216,19 +248,22 @@ class PccCollector(Collector):
             tool,
             collection_file_prefix,
             output_subdir,
-            self._op_for_cmd_type(PpccCommand.GET_NUM_PARAMS),
+            get_num_params_op,
             register_indexes,
         )
+
         if return_code != 0:
             return
 
         param_count = self._extract_value_field(output)
+
         if param_count is None:
             return
 
         param_info_op = self._op_for_cmd_type(
             PpccCommand.GET_PARAM_INFO
         )
+
         for param_index in range(param_count):
             param_indexes = (
                 f"{register_indexes},algo_param_index={param_index}"
@@ -246,13 +281,17 @@ class PccCollector(Collector):
         if param_count == 0:
             return
 
+        bulk_get_params_op = self._op_for_cmd_type(
+            PpccCommand.BULK_GET_PARAMS
+        )
+
         return_code, _ = self._ppcc_get(
             plugin,
             device_label,
             tool,
             collection_file_prefix,
             output_subdir,
-            self._op_for_cmd_type(PpccCommand.BULK_GET_PARAMS),
+            bulk_get_params_op,
             register_indexes,
         )
 
@@ -260,6 +299,7 @@ class PccCollector(Collector):
             return
 
         get_param_op = self._op_for_cmd_type(PpccCommand.GET_PARAM)
+
         for param_index in range(param_count):
             param_indexes = (
                 f"{register_indexes},algo_param_index={param_index}"
@@ -287,6 +327,9 @@ class PccCollector(Collector):
             algo_slot_index
         )
         device_label = ctx.pci
+        get_algo_status_op = self._op_for_cmd_type(
+            PpccCommand.GET_ALGO_STATUS
+        )
 
         if algo_slot_index in self._ALGO_SLOTS_COLLECT_STATUS_CMD_ONLY:
             self._ppcc_get(
@@ -295,10 +338,15 @@ class PccCollector(Collector):
                 tool,
                 collection_file_prefix,
                 output_subdir,
-                self._op_for_cmd_type(PpccCommand.GET_ALGO_STATUS),
+                get_algo_status_op,
                 register_indexes,
             )
+
             return
+
+        get_algo_info_op = self._op_for_cmd_type(
+            PpccCommand.GET_ALGO_INFO
+        )
 
         self._ppcc_get(
             plugin,
@@ -306,7 +354,7 @@ class PccCollector(Collector):
             tool,
             collection_file_prefix,
             output_subdir,
-            self._op_for_cmd_type(PpccCommand.GET_ALGO_INFO),
+            get_algo_info_op,
             register_indexes,
         )
 
@@ -316,17 +364,20 @@ class PccCollector(Collector):
             tool,
             collection_file_prefix,
             output_subdir,
-            self._op_for_cmd_type(PpccCommand.GET_ALGO_STATUS),
+            get_algo_status_op,
             register_indexes,
         )
+
         if return_code != 0:
             return
 
         algo_status = self._extract_value_field(output)
+
         if algo_status is not None and algo_status != 1:
             return
 
         counter_en_on = self._counter_en_enabled(output)
+
         if counter_en_on:
             self._collect_counters_for_algo_slot(
                 plugin,
@@ -336,6 +387,7 @@ class PccCollector(Collector):
                 ctx,
                 register_indexes,
             )
+
         self._collect_params_for_algo_slot(
             plugin,
             tool,
@@ -349,6 +401,9 @@ class PccCollector(Collector):
         collection_file_prefix = f"{tool_name}_{ctx.bdf}_"
         output_subdir = "pcc_info"
         device_label = ctx.pci
+        algo_info_array_op = self._op_for_cmd_type(
+            PpccCommand.ALGO_INFO_ARRAY
+        )
 
         return_code, output = self._ppcc_get(
             plugin,
@@ -356,15 +411,17 @@ class PccCollector(Collector):
             tool,
             collection_file_prefix,
             output_subdir,
-            self._op_for_cmd_type(PpccCommand.ALGO_INFO_ARRAY),
+            algo_info_array_op,
             self._BASE_REGISTER_INDEXES,
         )
+
         if return_code != 0:
             return
 
+        algo_slots = self._get_algo_slot_indices(output)
+
         present_algo_slots = sorted(
-            frozenset(self._get_algo_slot_indices(output))
-            | self._ALGO_SLOTS_COLLECT_STATUS_CMD_ONLY,
+            frozenset(algo_slots) | self._ALGO_SLOTS_COLLECT_STATUS_CMD_ONLY,
         )
 
         for algo_slot_index in present_algo_slots:
