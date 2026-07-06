@@ -23,7 +23,7 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
     using either MFT (flint) or MSTFlint utilities.
     """
 
-    plugin_timeout = 1650
+    plugin_timeout = 2160
     plugin_name = "mellanox_firmware"
     short_desc = "Nvidia (Mellanox) firmware tools output"
 
@@ -81,13 +81,13 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
     def timeout(self):
         base_timeout = super().timeout
         device_count = len([d for d in self.device_contexts if d.primary])
-        expected_timeout = device_count * 180
+        expected_timeout = device_count * 240
 
         if base_timeout < expected_timeout:
             self._log_warn(
                 f"Plugin timeout {base_timeout}s may be too low for "
                 f"{device_count} device(s). Expected ~{expected_timeout}s "
-                f"(~3 minutes per device)."
+                f"(~4 minutes per device)."
             )
 
         return base_timeout
