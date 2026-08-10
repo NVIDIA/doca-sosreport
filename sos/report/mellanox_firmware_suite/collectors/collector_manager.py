@@ -2,7 +2,6 @@ from .system_collector import SystemCollector
 from .firmware_collector import FirmwareCollector
 from .cable_collector import CableCollector
 from .pcc_collector import PccCollector
-from .doca_pcc_collector import DocaPccCollector
 
 
 class CollectorManager(object):
@@ -36,6 +35,3 @@ class CollectorManager(object):
 
         for ctx in self.device_contexts:
             PccCollector().run(self.plugin, ctx)
-
-        for ctx in self.device_contexts:
-            DocaPccCollector().run(self.plugin, ctx)
