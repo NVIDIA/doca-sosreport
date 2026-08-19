@@ -1,7 +1,7 @@
-pycodestyle>=2.4.0
-coverage>=4.0.3
-Sphinx>=4.3.2
+pycodestyle>=2.14.0
+coverage>=7.10.7
+Sphinx>=7.4.7
 pexpect>=4.0.0
 pyyaml
-packaging>=21.2
+packaging>=26.3
 
