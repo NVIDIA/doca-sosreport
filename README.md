@@ -1,18 +1,20 @@
 [![Build Status](https://api.cirrus-ci.com/github/sosreport/sos.svg?branch=main)](https://cirrus-ci.com/github/sosreport/sos) [![Documentation Status](https://readthedocs.org/projects/sos/badge/?version=main)](https://sos.readthedocs.io/en/main/?badge=main) [![](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/) [![sosreport](https://snapcraft.io/sosreport/badge.svg)](https://snapcraft.io/sosreport) [![Fedora package](https://img.shields.io/fedora/v/sos?color=darkgreen)](https://packages.fedoraproject.org/pkgs/sos/sos/) [![Ubuntu Package Version](https://img.shields.io/ubuntu/v/sosreport?color=darkgreen)](https://launchpad.net/ubuntu/+source/sosreport) [![Debian package (for distribution)](https://img.shields.io/debian/v/sosreport/unstable?color=darkgreen)](https://packages.debian.org/unstable/sosreport) ![GitHub contributors](https://img.shields.io/github/contributors/sosreport/sos)
 
+![DOCA Release Feature](https://developer-blogs.nvidia.com/wp-content/uploads/2022/10/doca-1-5-lts-release-featured-1.png)
+
+
+
 # SoS
 
-Sos is an extensible, portable, support data collection tool primarily
-aimed at Linux distributions and other UNIX-like operating systems.
+Sos is an extensible, portable, support data collection tool primarily aimed at Linux distributions and other UNIX-like operating systems.
 
 This project is hosted at:
 
-  * https://github.com/sosreport/sos
+- https://github.com/sosreport/sos
 
-For the latest version, to contribute, and for more information, please visit
-the project pages or join the mailing list.
+For the latest version, to contribute, and for more information, please visit the project pages or join the mailing list.
 
-To clone the current main (development) branch run:
+To clone the current main (development) branch, run:
 
 ```
 git clone git://github.com/sosreport/sos.git
