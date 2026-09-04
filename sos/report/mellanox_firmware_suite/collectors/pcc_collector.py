@@ -37,8 +37,6 @@ class PccCollector(Collector):
     # parameters or counters are collected for them.
     _STATUS_ONLY_ALGO_SLOTS = frozenset({15})
 
-    _COMMAND_OUTPUT_LOG_MAX_CHARS = 4000
-
     _TEXT_TABLE_LINE_PATTERN = re.compile(
         r"^\s*text\[(\d+)\]\s*\|\s*0x([0-9a-fA-F]+)",
         re.MULTILINE | re.IGNORECASE,
@@ -51,6 +49,7 @@ class PccCollector(Collector):
         r"^\s*counter_en\s*\|\s*0x([0-9a-fA-F]+)",
         re.MULTILINE | re.IGNORECASE,
     )
+    _TOOL_ERROR_LINE_PATTERN = re.compile(r"^\s*-E-\s*(.+)$", re.MULTILINE)
 
     @staticmethod
     def _op_for_cmd_type(command):
@@ -130,29 +129,33 @@ class PccCollector(Collector):
         return (value & 1) != 0
 
     @classmethod
-    def _clip_command_output(cls, text):
-        raw = (text or "").strip()
+    def _tool_error_reason(cls, output):
+        """
+        The tool's ``-E-`` line, used to report why PPCC is unavailable.
+        """
 
-        if not raw:
-            return "(empty)"
+        match = cls._TOOL_ERROR_LINE_PATTERN.search(output or "")
 
-        limit = cls._COMMAND_OUTPUT_LOG_MAX_CHARS
+        if not match:
+            return "no error reported"
 
-        if len(raw) <= limit:
-            return raw
-
-        return raw[:limit]
+        return match.group(1).strip()
 
     def _ppcc_get(
         self,
-        plugin,
-        device_label,
         tool,
         collection_file_prefix,
         output_subdir,
         command,
         register_indexes,
     ):
+        """
+        Run one PPCC read and store its output in the report.
+
+        Failures are not logged here: the tool layer already logs the
+        command and return code, and the output is kept in the report.
+        """
+
         command_options = self._op_for_cmd_type(command)
         filename = self._make_filename_for_ppcc_get(
             collection_file_prefix,
@@ -160,28 +163,15 @@ class PccCollector(Collector):
             register_indexes,
         )
 
-        return_code, output = tool.ppcc_get(
+        return tool.ppcc_get(
             command_options,
             register_indexes,
             filename=filename,
             subdir=output_subdir,
         )
 
-        if return_code != 0:
-            clipped_output = self._clip_command_output(output)
-            plugin._log_info(
-                "PPCC command failed "
-                f"device={device_label} cmd_type={command.value} "
-                f"indexes={register_indexes!r} rc={return_code} "
-                f"output:\n{clipped_output}"
-            )
-
-        return return_code, output
-
     def _ppcc_get_for_each_algo_param(
         self,
-        plugin,
-        device_label,
         tool,
         collection_file_prefix,
         output_subdir,
@@ -194,8 +184,6 @@ class PccCollector(Collector):
                 f"{register_indexes},algo_param_index={algo_param_index}"
             )
             self._ppcc_get(
-                plugin,
-                device_label,
                 tool,
                 collection_file_prefix,
                 output_subdir,
@@ -205,8 +193,6 @@ class PccCollector(Collector):
 
     def _count_from_command(
         self,
-        plugin,
-        device_label,
         tool,
         collection_file_prefix,
         output_subdir,
@@ -220,8 +206,6 @@ class PccCollector(Collector):
         """
 
         return_code, output = self._ppcc_get(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -236,8 +220,6 @@ class PccCollector(Collector):
 
     def _collect_params_individually(
         self,
-        plugin,
-        device_label,
         tool,
         collection_file_prefix,
         output_subdir,
@@ -251,8 +233,6 @@ class PccCollector(Collector):
         """
 
         self._ppcc_get_for_each_algo_param(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -263,17 +243,12 @@ class PccCollector(Collector):
 
     def _collect_counters_for_algo_slot(
         self,
-        plugin,
         tool,
         collection_file_prefix,
         output_subdir,
-        ctx,
         register_indexes,
     ):
-        device_label = ctx.pci
         counter_count = self._count_from_command(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -285,8 +260,6 @@ class PccCollector(Collector):
             return
 
         self._ppcc_get_for_each_algo_param(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -299,8 +272,6 @@ class PccCollector(Collector):
             return
 
         self._ppcc_get(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -310,17 +281,12 @@ class PccCollector(Collector):
 
     def _collect_params_for_algo_slot(
         self,
-        plugin,
         tool,
         collection_file_prefix,
         output_subdir,
-        ctx,
         register_indexes,
     ):
-        device_label = ctx.pci
         param_count = self._count_from_command(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -332,8 +298,6 @@ class PccCollector(Collector):
             return
 
         self._ppcc_get_for_each_algo_param(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -346,8 +310,6 @@ class PccCollector(Collector):
             return
 
         return_code, _ = self._ppcc_get(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -357,8 +319,6 @@ class PccCollector(Collector):
 
         if return_code != 0:
             self._collect_params_individually(
-                plugin,
-                device_label,
                 tool,
                 collection_file_prefix,
                 output_subdir,
@@ -368,16 +328,12 @@ class PccCollector(Collector):
 
     def _collect_status_only_algo_slot(
         self,
-        plugin,
-        device_label,
         tool,
         collection_file_prefix,
         output_subdir,
         register_indexes,
     ):
         self._ppcc_get(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -387,11 +343,9 @@ class PccCollector(Collector):
 
     def _collect_single_algo_slot(
         self,
-        plugin,
         tool,
         collection_file_prefix,
         output_subdir,
-        ctx,
         algo_slot_index,
     ):
         """
@@ -404,12 +358,9 @@ class PccCollector(Collector):
         register_indexes = self._register_indexes_for_algo_slot(
             algo_slot_index
         )
-        device_label = ctx.pci
 
         if algo_slot_index in self._STATUS_ONLY_ALGO_SLOTS:
             self._collect_status_only_algo_slot(
-                plugin,
-                device_label,
                 tool,
                 collection_file_prefix,
                 output_subdir,
@@ -419,8 +370,6 @@ class PccCollector(Collector):
             return
 
         self._ppcc_get(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -429,8 +378,6 @@ class PccCollector(Collector):
         )
 
         return_code, output = self._ppcc_get(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -453,20 +400,16 @@ class PccCollector(Collector):
 
         if counter_en_on:
             self._collect_counters_for_algo_slot(
-                plugin,
                 tool,
                 collection_file_prefix,
                 output_subdir,
-                ctx,
                 register_indexes,
             )
 
         self._collect_params_for_algo_slot(
-            plugin,
             tool,
             collection_file_prefix,
             output_subdir,
-            ctx,
             register_indexes,
         )
 
@@ -478,12 +421,16 @@ class PccCollector(Collector):
         )
 
     def _collect_ppcc_data(self, plugin, tool, tool_name, ctx):
+        """
+        Collect PPCC data for every algorithm slot of one device.
+
+        The ALGO_INFO_ARRAY read doubles as the PCC support check, so a
+        failure means the device exposes no PCC data and is skipped.
+        """
+
         collection_file_prefix = f"{tool_name}_{ctx.bdf}_"
         output_subdir = "pcc_info"
-        device_label = ctx.pci
         return_code, output = self._ppcc_get(
-            plugin,
-            device_label,
             tool,
             collection_file_prefix,
             output_subdir,
@@ -492,17 +439,18 @@ class PccCollector(Collector):
         )
 
         if return_code != 0:
+            plugin._log_info(
+                f"Skipping PCC collection for {ctx.pci}: "
+                f"{self._tool_error_reason(output)}"
+            )
+
             return
 
-        present_algo_slots = self._algo_slots_to_collect(output)
-
-        for algo_slot_index in present_algo_slots:
+        for algo_slot_index in self._algo_slots_to_collect(output):
             self._collect_single_algo_slot(
-                plugin,
                 tool,
                 collection_file_prefix,
                 output_subdir,
-                ctx,
                 algo_slot_index,
             )
 
