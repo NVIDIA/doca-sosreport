@@ -9,7 +9,7 @@
 import re
 import shutil
 
-from sos.report.plugins import Plugin, IndependentPlugin
+from sos.report.plugins import Plugin, IndependentPlugin, PluginOpt
 from sos.report.mellanox_firmware_suite.tools import FirmwareTools
 from sos.report.mellanox_firmware_suite.device_context import DeviceContext
 from sos.report.mellanox_firmware_suite.collectors.collector_manager import (
@@ -23,7 +23,7 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
     using either MFT (flint) or MSTFlint utilities.
     """
 
-    plugin_timeout = 1650
+    plugin_timeout = 2160
     plugin_name = "mellanox_firmware"
     short_desc = "Nvidia (Mellanox) firmware tools output"
 
@@ -39,6 +39,16 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
 
     packages = ("mst", "mstflint")
     profiles = ("hardware", "system")
+
+    option_list = [
+        PluginOpt(
+            "pcc",
+            default=False,
+            desc=(
+                "Collect PCC-related information"
+            ),
+        ),
+    ]
 
     def __init__(self, commons):
         super().__init__(commons=commons)
@@ -71,13 +81,13 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
     def timeout(self):
         base_timeout = super().timeout
         device_count = len([d for d in self.device_contexts if d.primary])
-        expected_timeout = device_count * 180
+        expected_timeout = device_count * 240
 
         if base_timeout < expected_timeout:
             self._log_warn(
                 f"Plugin timeout {base_timeout}s may be too low for "
                 f"{device_count} device(s). Expected ~{expected_timeout}s "
-                f"(~3 minutes per device)."
+                f"(~4 minutes per device)."
             )
 
         return base_timeout
