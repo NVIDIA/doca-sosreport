@@ -24,6 +24,11 @@ class SoSKeywordMap(SoSMap):
     match_full_words_only = True
     word_count = 0
 
+    def __init__(self, exact=False):
+        if exact:
+            self.match_full_words_only = False
+        super().__init__()
+
     def sanitize_item(self, item):
         if item in self.dataset:
             return self.dataset[item]

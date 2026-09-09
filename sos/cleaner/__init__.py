@@ -88,6 +88,7 @@ class SoSCleaner(SoSComponent):
         'jobs': 4,
         'keywords': [],
         'keyword_file': None,
+        'keyword_exact': False,
         'map_file': '/etc/sos/cleaner/default_mapping',
         'no_update': False,
         'keep_binary_files': False,
@@ -135,7 +136,8 @@ class SoSCleaner(SoSComponent):
             SoSIPParser(self.cleaner_mapping, skip_cleaning_files),
             SoSIPv6Parser(self.cleaner_mapping, skip_cleaning_files),
             SoSMacParser(self.cleaner_mapping, skip_cleaning_files),
-            SoSKeywordParser(self.cleaner_mapping, skip_cleaning_files),
+            SoSKeywordParser(self.cleaner_mapping, skip_cleaning_files,
+                             keyword_exact=self.opts.keyword_exact),
             SoSUsernameParser(self.cleaner_mapping, skip_cleaning_files)
         ]
 
@@ -280,6 +282,13 @@ third party.
         clean_grp.add_argument('--keyword-file', default=None,
                                dest='keyword_file',
                                help='Provide a file a keywords to obfuscate')
+        clean_grp.add_argument('--keyword-exact', default=False,
+                               action='store_true', dest='keyword_exact',
+                               help=('Use exact substring matching for '
+                                     '--keywords instead of word-boundary '
+                                     'matching. Recommended for long unique '
+                                     'strings such as hostnames or serial '
+                                     'numbers.'))
         clean_grp.add_argument('--map-file', dest='map_file',
                                default='/etc/sos/cleaner/default_mapping',
                                help=('Provide a previously generated mapping '
