@@ -96,6 +96,7 @@ class SoSCollector(SoSComponent):
         'journal_size': 0,
         'keywords': [],
         'keyword_file': None,
+        'keyword_exact': False,
         'keep_binary_files': False,
         'label': '',
         'list_options': False,
@@ -507,6 +508,13 @@ class SoSCollector(SoSComponent):
         cleaner_grp.add_argument('--keyword-file', default=None,
                                  dest='keyword_file',
                                  help='Provide a file a keywords to obfuscate')
+        cleaner_grp.add_argument('--keyword-exact', default=False,
+                                 action='store_true', dest='keyword_exact',
+                                 help=('Use exact substring matching for '
+                                       '--keywords instead of word-boundary '
+                                       'matching. Recommended for long unique '
+                                       'strings such as hostnames or serial '
+                                       'numbers.'))
         cleaner_grp.add_argument('--no-update', action='store_true',
                                  default=False, dest='no_update',
                                  help='Do not update the default cleaner map')
