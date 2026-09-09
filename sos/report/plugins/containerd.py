@@ -25,7 +25,7 @@ class Containerd(Plugin, IndependentPlugin):
             "/etc/cni/net.d/",
         ])
 
-        self.add_forbidden_path("/etc/cni/net.d/*/*.kubeconfig")
+        self.add_forbidden_path("/etc/cni/net.d/*.kubeconfig")
 
         self.add_cmd_output('containerd config dump')
         self.add_cmd_output('ctr deprecations list')
