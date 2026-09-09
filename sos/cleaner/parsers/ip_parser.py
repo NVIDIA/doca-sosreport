@@ -18,7 +18,7 @@ class SoSIPParser(SoSCleanerParser):
     name = 'IP Parser'
     regex_patterns = [
         # IPv4 with or without CIDR
-        r'((?<!(-|\.|\d))([0-9]{1,3}\.){3}([0-9]){1,3}(\/([0-9]{1,2}))?)'
+        r'((?<!(-|\.|\d))([0-9]{1,3}\.){3}([0-9]){1,3}(\/([0-9]{1,2})(?!\d))?)'
     ]
     skip_line_patterns = [
         # don't match package versions recorded in journals
