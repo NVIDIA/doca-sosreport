@@ -36,7 +36,7 @@ support technicians and developers.
 
 %if 0%{?fedora} >= 39
 %generate_buildrequires
-%pyproject_buildrequires
+%pyproject_buildrequires -R
 %endif
 
 %build
