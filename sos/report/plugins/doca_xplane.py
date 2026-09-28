@@ -1,8 +1,11 @@
 import json
+
 from sos.report.plugins import IndependentPlugin, Plugin
 from sos.utilities import is_executable
 
 SERVICE_NAME = "doca-xplane"
+CORE_SERVICE_NAME = "doca-xplane-core"
+TRANSPORT_SERVICE_NAME = "doca-xplane-transport"
 CLIENT_COMMAND = "doca-xplane-client"
 
 
@@ -13,7 +16,7 @@ class DocaXPlane(Plugin, IndependentPlugin):
     plugin_name = "doca_xplane"
     profiles = ("doca",)
     packages = (SERVICE_NAME, CLIENT_COMMAND)
-    services = (SERVICE_NAME,)
+    services = (SERVICE_NAME, CORE_SERVICE_NAME, TRANSPORT_SERVICE_NAME)
     containers = (SERVICE_NAME,)
     commands = (CLIENT_COMMAND,)
 
@@ -32,22 +35,23 @@ class DocaXPlane(Plugin, IndependentPlugin):
         self.add_cmd_output(
             [
                 f"{CLIENT_COMMAND} --version",
+                f"{CLIENT_COMMAND} get-status",
                 f"{CLIENT_COMMAND} get-planes-summary",
-                f"{CLIENT_COMMAND} get-topology",
             ]
         )
 
-        res = self.collect_cmd_output(f"{CLIENT_COMMAND} get-status")
+        res = self.collect_cmd_output(f"{CLIENT_COMMAND} get-topology")
 
         if res["status"] != 0:
-            self._log_error("Failed to get status")
+            self._log_error("Failed to get topology")
             return
 
         try:
-            status = json.loads(res["output"])
-            num_planes = status["topologySummary"]["planes"]
-        except Exception as e:
-            self._log_error(f"Failed to parse status: {e}")
+            pfs = json.loads(res["output"])["pfs"]
+            plane_ids = sorted({pf["plane"] for pf in pfs})
+            pf_names = sorted({pf["pfName"] for pf in pfs})
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            self._log_error(f"Failed to parse topology: {e}")
             return
 
         subcommands = (
@@ -61,7 +65,19 @@ class DocaXPlane(Plugin, IndependentPlugin):
         self.add_cmd_output(
             [
                 f"{CLIENT_COMMAND} {sub} --plane_id {i}"
-                for i in range(num_planes)
+                for i in plane_ids
                 for sub in subcommands
             ]
         )
+
+        maintenance_help = self.exec_cmd(
+            f"{CLIENT_COMMAND} maintenance get-link-maintenance --help"
+        )
+        if maintenance_help["status"] == 0:
+            self.add_cmd_output(
+                [
+                    f"{CLIENT_COMMAND} maintenance get-link-maintenance "
+                    f"--pf_name {pf_name}"
+                    for pf_name in pf_names
+                ]
+            )
