@@ -31,6 +31,7 @@ fi
 if [ "$DEBUG" == "true" ] ; then
 	options+=("-v")
 fi
+options+=("-t" "1")
 
 sos report -s /host ${options[@]} | tee /tmp/log.txt
 
