@@ -48,6 +48,23 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
                 "Collect PCC-related information"
             ),
         ),
+        PluginOpt(
+            "pci",
+            default="",
+            val_type=str,
+            desc=(
+                "space-separated PCI addresses to collect from"
+            ),
+            long_desc=(
+                "Restrict collection to the given Mellanox PCI addresses "
+                "instead of every Mellanox device on the system. Each "
+                "address must include the domain, as reported by "
+                "'lspci -D', e.g. 0000:03:00.0. For example: "
+                "-k \"mellanox_firmware.pci=0000:03:00.0 0000:81:00.1\". "
+                "Addresses that do not belong to a Mellanox device are "
+                "ignored."
+            ),
+        ),
     ]
 
     def __init__(self, commons):
@@ -92,6 +109,17 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
 
         return base_timeout
 
+    def _requested_pci(self):
+        """
+        Return the PCI addresses given via the 'pci' option.
+
+        An empty set means no restriction was requested, i.e. collect
+        from every Mellanox device.
+        """
+        raw = self.get_option("pci", default="") or ""
+
+        return {item.lower() for item in str(raw).replace(",", " ").split()}
+
     def _list_mellanox_pci(self):
         """
         Return (pci_addr, is_primary) tuples detected via lspci.
@@ -102,6 +130,7 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
 
         devices = []
         seen_prefixes = set()
+        requested = self._requested_pci()
         result = self.exec_cmd(self.PCI_VENDOR_CMD)
 
         if result.get("status") != 0:
@@ -119,6 +148,9 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
             pci_addr = fields[0].lower()
 
             if not self._LONG_PCI_RE.match(pci_addr):
+                continue
+
+            if requested and pci_addr not in requested:
                 continue
 
             prefix = pci_addr.rsplit(":", 1)[0]
