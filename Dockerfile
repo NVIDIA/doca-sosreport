@@ -45,13 +45,16 @@ RUN --mount=type=cache,target=/root/.cache \
 FROM ubuntu:24.04
 
 ARG TARGETARCH
-ARG KUBERNETES_VERSION=1.32
+ARG KUBERNETES_VERSION=1.34
 ARG MFT_VERSION=4.29.0-131
 ARG PYTHON_VERSION=3.12
 
 ENV TAR_OPTIONS="--no-same-owner"
 
-RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recommends \
+RUN apt-get update -o Acquire::Retries=3 && apt-get install -y \
+    --allow-downgrades \
+    --no-install-recommends \
+    -o APT::Install-Suggests=false \
     apt-transport-https \
     ca-certificates \
     gpg \
@@ -71,22 +74,19 @@ RUN apt-get update && apt-get install -y --allow-downgrades --no-install-recomme
     conntrack \
     openvswitch-switch \
     bridge-utils \
-    dmidecode && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update -y && apt-get install -y \
-    -o APT::Install-Recommends=false \
-    -o APT::Install-Suggests=false \
+    dmidecode \
     python${PYTHON_VERSION} \
     libpython${PYTHON_VERSION} && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=cache,target=/root/.cache \
     case ${TARGETARCH} in \
-        amd64) curl -fsSL https://www.mellanox.com/downloads/MFT/mft-${MFT_VERSION}-x86_64-deb.tgz | tar -xz -C /tmp && \
+        amd64) curl -fsSL --retry 5 --retry-all-errors \
+                https://content.mellanox.com/MFT/mft-${MFT_VERSION}-x86_64-deb.tgz | tar -xz -C /tmp && \
                 cd /tmp/mft-${MFT_VERSION}-x86_64-deb && \
                 ./install.sh --without-kernel ;; \
-        arm64) curl -fsSL https://www.mellanox.com/downloads/MFT/mft-${MFT_VERSION}-arm64-deb.tgz | tar -xz -C /tmp && \
+        arm64) curl -fsSL --retry 5 --retry-all-errors \
+                https://content.mellanox.com/MFT/mft-${MFT_VERSION}-arm64-deb.tgz | tar -xz -C /tmp && \
                 cd /tmp/mft-${MFT_VERSION}-arm64-deb && \
                 ./install.sh --without-kernel ;; \
         *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
@@ -94,12 +94,14 @@ RUN --mount=type=cache,target=/root/.cache \
 
 # TODO: If we plan support for additional container runtimes, we need to install the corresponding packages here.
 RUN --mount=type=cache,target=/root/.cache \
-    wget https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_VERSION}/deb/Release.key -O /tmp/Release.key && \
+    curl -fsSL --retry 5 --retry-all-errors \
+        "https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v${KUBERNETES_VERSION}/deb/Release.key" \
+        -o /tmp/Release.key && \
     gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg /tmp/Release.key && \
     rm /tmp/Release.key && \
     echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_VERSION}/deb/ /" \
     | tee /etc/apt/sources.list.d/kubernetes.list && \
-    apt-get update -y && apt-get install -y cri-tools kubectl && \
+    apt-get update -y -o Acquire::Retries=3 && apt-get install -y cri-tools kubectl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /opt/venv /opt/venv
