@@ -114,16 +114,25 @@ class DocaDpf(Plugin):
                 self.kube_cmd += f" --kubeconfig={_kconf}"
                 break
 
-    def check_is_master(self):
-        """ Check if this is the master node """
+    def should_collect_cluster(self):
+        """Whether to run host-cluster kubectl.
+
+        SOS_COLLECT_CLUSTER is set by the caller to force (1) or skip (0)
+        host-cluster kubectl collection; unset falls back to kubeconfig
+        presence.
+        """
+        env = os.environ.get('SOS_COLLECT_CLUSTER')
+        if env is not None:
+            return env == '1'
         return any(self.path_exists(f) for f in self.files)
 
     def setup(self):
         # Copy the specified configuration files
         self.add_copy_spec(self.config_files)
 
-        # We can only grab kubectl output from the master
-        if not self.check_is_master():
+        # SOS_COLLECT_CLUSTER: caller sets 1 to force or 0 to skip
+        # host-cluster kubectl; unset falls back to kubeconfig presence.
+        if not self.should_collect_cluster():
             return
 
         # Collect host cluster resources
@@ -174,16 +183,24 @@ class DocaDpf(Plugin):
         Returns a list of dicts with cluster name, namespace, and
         kubeconfig secret name.
         """
-        result = self.collect_cmd_output(
+        result = self._collect_cmd_output(
             f"{self.kube_cmd} get dpucluster -A -o json",
-            subdir='cluster-info'
+            suggest_filename='dpucluster-list.json',
+            subdir='cluster-info',
+            to_file=True,
         )
 
         if result['status'] != 0:
             return []
 
+        json_path = result.get('filename')
+        if not json_path or not os.path.isfile(json_path):
+            self._log_error("dpucluster discovery produced no output file")
+            return []
+
         try:
-            data = json.loads(result['output'])
+            with open(json_path, encoding='utf-8') as fh:
+                data = json.load(fh)
             clusters = []
             for item in data.get('items', []):
                 cluster_name = item['metadata']['name']
