@@ -15,7 +15,8 @@ import json
 class DevlinkHealth(Plugin, IndependentPlugin):
     """
     This plugin collects information about devlink health reporters and their
-    status. It gathers the output of diagnostics and dumps for each reporter.
+    status. It gathers the output of diagnostics for each reporter, and of
+    dumps that are already stored.
     """
     short_desc = 'Devlink health reporting and recovery information'
     plugin_name = "devlink_health"
@@ -40,9 +41,10 @@ class DevlinkHealth(Plugin, IndependentPlugin):
             self.add_cmd_output(f"devlink health diagnose {dev} reporter "
                                 f"{reporter}")
 
-            # Get dump for each reporter
-            self.add_cmd_output(f"devlink health dump show {dev} reporter "
-                                f"{reporter}", foreground=True)
+            # Get dump for each reporter already holding one
+            if reporter_info['stored_dump']:
+                self.add_cmd_output(f"devlink health dump show {dev} reporter "
+                                    f"{reporter}", foreground=True)
 
     def _parse_devlink_health_json(self, output):
         """
@@ -68,7 +70,8 @@ class DevlinkHealth(Plugin, IndependentPlugin):
 
                     reporter_info = {
                         'dev': dev_name,
-                        'reporter': reporter_data['reporter']
+                        'reporter': reporter_data['reporter'],
+                        'stored_dump': 'last_dump_date' in reporter_data
                     }
                     out_reporters.append(reporter_info)
 
