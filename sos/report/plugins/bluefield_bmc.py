@@ -125,7 +125,7 @@ class BluefieldBmc(Plugin, IndependentPlugin):
         """Extract BMC IP address from ipmitool."""
         # ipmitool lan print uses the default channel (1), where the BMC is.
         cmd = "ipmitool lan print"
-        result = self.exec_cmd(cmd, timeout=30)
+        result = self.exec_cmd(cmd, timeout=60)
         if result['status'] == 0:
             # Look for "IP Address" line
             for line in result['output'].split('\n'):
