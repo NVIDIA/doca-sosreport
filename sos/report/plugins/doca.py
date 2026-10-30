@@ -8,7 +8,6 @@
 # See the LICENSE file in the source distribution for further information.
 
 from sos.report.plugins import Plugin, IndependentPlugin
-import os
 
 
 class Doca(Plugin, IndependentPlugin):
@@ -24,8 +23,8 @@ class Doca(Plugin, IndependentPlugin):
     mlnx_release = "/etc/mlnx-release"
 
     def check_enabled(self):
-        return os.path.isfile(self.doca_version) or \
-         os.path.isfile(self.mlnx_release)
+        return self.path_isfile(self.doca_version) or \
+         self.path_isfile(self.mlnx_release)
 
     def setup(self):
         self.add_copy_spec([
@@ -52,9 +51,10 @@ class Doca(Plugin, IndependentPlugin):
         self.exec_cmd(doca_script)
 
         doca_commands_file = '/var/tmp/sos_commands'
-        if os.path.isfile(doca_commands_file):
+        if self.path_isfile(doca_commands_file):
             try:
-                with open(doca_commands_file, 'r', encoding='UTF-8') as f:
+                path = self.path_join(doca_commands_file)
+                with open(path, 'r', encoding='UTF-8') as f:
                     lines = f.readlines()
                     for line in lines:
                         self.add_cmd_output(line.strip())
@@ -62,9 +62,10 @@ class Doca(Plugin, IndependentPlugin):
                 self._log_warn(f'Error reading {doca_commands_file}: {e}')
 
         doca_logs = '/opt/mellanox/doca/tools/sos_logs'
-        if os.path.isfile(doca_logs):
+        if self.path_isfile(doca_logs):
             try:
-                with open(doca_logs, 'r', encoding='UTF-8') as f:
+                path = self.path_join(doca_logs)
+                with open(path, 'r', encoding='UTF-8') as f:
                     lines = f.readlines()
                     for line in lines:
                         self.add_copy_spec(line.strip())
