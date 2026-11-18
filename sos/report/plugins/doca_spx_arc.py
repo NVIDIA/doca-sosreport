@@ -3,28 +3,25 @@ import json
 from sos.report.plugins import IndependentPlugin, Plugin
 from sos.utilities import is_executable
 
-SERVICE_NAME = "doca-xplane"
-CORE_SERVICE_NAME = "doca-xplane-core"
-TRANSPORT_SERVICE_NAME = "doca-xplane-transport"
-CLIENT_COMMAND = "doca-xplane-client"
+CLIENT_COMMAND = "arcctl"
 
 
-class DocaXPlane(Plugin, IndependentPlugin):
-    """Collect DOCA XPlane service data and, when available, CLI state."""
+class DocaSpxArc(Plugin, IndependentPlugin):
+    """Collect Spectrum-X ARC service and CLI state."""
 
-    short_desc = "DOCA XPlane service"
-    plugin_name = "doca_xplane"
+    short_desc = "DOCA Spectrum-X ARC service"
+    plugin_name = "doca_spx_arc"
     profiles = ("doca",)
-    packages = (SERVICE_NAME, CLIENT_COMMAND)
-    services = (SERVICE_NAME, CORE_SERVICE_NAME, TRANSPORT_SERVICE_NAME)
-    containers = (SERVICE_NAME,)
+    packages = ("doca-spx-arc", "doca-spx-arc-client")
+    services = ("doca-spx-arc-core", "doca-spx-arc-transport")
+    containers = ("spx-arc", "doca-spx-arc")
     commands = (CLIENT_COMMAND,)
 
     def setup(self):
         self.add_copy_spec(
             [
-                "/opt/mellanox/doca/services/xplane",
-                "/var/log/xplane",
+                "/opt/mellanox/doca/services/spx-arc",
+                "/var/log/spx-arc",
             ]
         )
 
