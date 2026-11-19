@@ -41,7 +41,7 @@ class DocaDpf(Plugin):
     By default, it collects resources from the host Kubernetes cluster.
 
     When the 'collect-dpu-clusters' option is enabled, it will automatically
-    detect all DPU clusters (dpucluster resources) in the host cluster,
+    detect all DPU clusters (dpuclusters resources) in the host cluster,
     retrieve their kubeconfigs from Kubernetes secrets, and collect resources
     from each child DPU cluster. The collected data is organized in a directory
     structure: dpu-clusters/{namespace}/{cluster-name}/
@@ -54,46 +54,50 @@ class DocaDpf(Plugin):
     # DOCA Platform Framework related configuration files to collect
     config_files = []
     resources = [
-        'pod',
-        'bfb',
-        'dpfoperatorconfig',
-        'dpudeployment',
-        'dpuflavor',
-        'dpuservice',
-        'dpuservicechain',
-        'dpuserviceconfiguration',
-        'dpuservicecredentialrequest',
-        'dpuserviceinterface',
-        'dpuserviceipam',
-        'dpuservicetemplate',
-        'dpuset',
-        'dpu',
-        'dpucluster',
-        'dpudevice',
-        'dpudiscovery',
-        'dpunodemaintenance',
-        'dpunode',
-        'servicechain',
-        'servicechainset',
-        'serviceinterface',
-        'serviceinterfaceset',
+        'pods',
+        'bfbs',
+        'bluefieldsoftwares',
+        'dpfoperatorconfigs',
+        'nodesriovdevicepluginconfigs',
+        'dpudeployments',
+        'dpuflavors',
+        'dpuservices',
+        'dpuservicechains',
+        'dpuserviceconfigurations',
+        'dpuservicecredentialrequests',
+        'dpuserviceinterfaces',
+        'dpuserviceipams',
+        'dpuservicenads',
+        'dpuservicetemplates',
+        'dpusets',
+        'dpus',
+        'dpuclusters',
+        'dpudevices',
+        'dpudiscoveries',
+        'dpunodemaintenances',
+        'dpunodes',
+        'nodeserviceinterfaces',
+        'servicechains',
+        'servicechainsets',
+        'serviceinterfaces',
+        'serviceinterfacesets',
         # storage related custom resources
-        'dpustoragepolicy',
-        'dpustoragevendor',
-        'dpuvolumeattachment',
-        'dpuvolume',
+        'dpustoragepolicies',
+        'dpustoragevendors',
+        'dpuvolumeattachments',
+        'dpuvolumes',
         # vpc related custom resources
-        'dpuvirtualnetwork',
-        'dpuvpc',
-        'isolationclass',
+        'dpuvirtualnetworks',
+        'dpuvpcs',
+        'isolationclasses',
         # nv-ipam custom resources
-        'cidrpool',
-        'ippool',
+        'cidrpools',
+        'ippools',
         # argocd custom resources
-        'application',
-        'appproject',
+        'applications',
+        'appprojects',
         # kamaji custom resources
-        'tenantcontrolplane',
+        'tenantcontrolplanes',
     ]
 
     option_list = [
