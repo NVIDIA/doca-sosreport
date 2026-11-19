@@ -52,14 +52,12 @@ ARG PYTHON_VERSION=3.12
 ENV TAR_OPTIONS="--no-same-owner"
 
 RUN apt-get update -o Acquire::Retries=3 && apt-get install -y \
-    --allow-downgrades \
     --no-install-recommends \
     -o APT::Install-Suggests=false \
     apt-transport-https \
     ca-certificates \
     gpg \
     curl \
-    wget \
     pciutils \
     systemd \
     util-linux \

@@ -53,7 +53,7 @@ class DocaDpf(Plugin):
     # DOCA Platform Framework related configuration files to collect
     config_files = []
     resources = [
-        'pod',
+        'pods',
         'bfbs',
         'bluefieldsoftwares',
         'dpfoperatorconfigs',
@@ -90,13 +90,13 @@ class DocaDpf(Plugin):
         'dpuvpcs',
         'isolationclasses',
         # nv-ipam custom resources
-        'cidrpool',
-        'ippool',
+        'cidrpools',
+        'ippools',
         # argocd custom resources
-        'application',
-        'appproject',
+        'applications',
+        'appprojects',
         # kamaji custom resources
-        'tenantcontrolplane',
+        'tenantcontrolplanes',
     ]
 
     option_list = [
