@@ -31,9 +31,12 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
     PCI_VENDOR_CMD = "lspci -D -d 15b3:"
 
     _LONG_PCI_RE = re.compile(
-        r"^[\da-fA-F]{1,4}:[\da-fA-F]{1,2}:[\da-fA-F]{1,2}\.[0-7]$"
+        r"\b([\da-fA-F]{1,4}):([\da-fA-F]{1,2}):"
+        r"([\da-fA-F]{1,2})\.([0-7])\b"
     )
-    _SHORT_PCI_RE = re.compile(r"[\da-fA-F]{1,2}:[\da-fA-F]{1,2}\.[0-7]")
+    _SHORT_PCI_RE = re.compile(
+        r"\b([\da-fA-F]{1,2}):([\da-fA-F]{1,2})\.([0-7])\b"
+    )
     _FWCTL_RE = re.compile(r"/dev/fwctl/\S+")
     _MST_RE = re.compile(r"/dev/mst/\S+")
 
@@ -147,7 +150,7 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
 
             pci_addr = fields[0].lower()
 
-            if not self._LONG_PCI_RE.match(pci_addr):
+            if not self._LONG_PCI_RE.fullmatch(pci_addr):
                 continue
 
             if requested and pci_addr not in requested:
@@ -166,9 +169,18 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
         Scans each line after the column header for distinctive regex
         patterns rather than relying on fixed column positions.
 
-        Returns dict mapping short PCI address to (mst_device, fwctl).
-        Values are None when the field is not present in the line.
+        PCI addresses are printed either with a domain (0001:03:00.0)
+        or without one (82:00.0).
+        The domain must be kept when present, since hosts with one PCI domain
+        per card have several cards sharing the same bus:dev.fn.
+
+        Returns dict mapping the normalized PCI address to
+        (mst_device, fwctl). Keys are DDDD:BB:DD.F when the table
+        includes domains, BB:DD.F otherwise. Values are None when the
+        field is not present in the line.
         """
+
+        rows = []
         result = {}
         in_table = False
 
@@ -177,20 +189,31 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
                 in_table = True
                 continue
 
-            if not in_table or not line.strip():
-                continue
+            if in_table and line.strip():
+                rows.append(line)
 
-            pci_match = self._SHORT_PCI_RE.search(line)
+        if any(self._LONG_PCI_RE.search(row) for row in rows):
+            pci_re = self._LONG_PCI_RE
+
+        else:
+            pci_re = self._SHORT_PCI_RE
+
+        for row in rows:
+            pci_match = pci_re.search(row)
 
             if not pci_match:
                 continue
 
-            pci = pci_match.group().lower()
+            *domain, bus, dev, func = pci_match.groups()
+            pci = f"{int(bus, 16):02x}:{int(dev, 16):02x}.{func}"
 
-            mst_match = self._MST_RE.search(line)
+            if domain:
+                pci = f"{int(domain[0], 16):04x}:{pci}"
+
+            mst_match = self._MST_RE.search(row)
             mst = mst_match.group() if mst_match else None
 
-            fwctl_match = self._FWCTL_RE.search(line)
+            fwctl_match = self._FWCTL_RE.search(row)
             fwctl = fwctl_match.group() if fwctl_match else None
 
             result[pci] = (mst, fwctl)
@@ -240,7 +263,8 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
         1. lspci provides canonical PCI addresses and primary marking.
         2. 'mst status -v' or 'mstdevices_info -v' provides MST device
            names and FWCTL paths (when available).
-        3. Cross-references by checking short PCI in long PCI addresses.
+        3. Cross-references by full PCI address when the table includes
+           domains, otherwise by bus:dev.fn.
         """
         pci_devices = self._list_mellanox_pci()
 
@@ -258,12 +282,11 @@ class MellanoxFirmware(Plugin, IndependentPlugin):
         results = []
 
         for pci_addr, is_primary in pci_devices:
-            mst, fwctl = None, None
+            short_pci = pci_addr.split(":", 1)[1]
 
-            for short_pci, (m, f) in enrichment.items():
-                if pci_addr.endswith(short_pci):
-                    mst, fwctl = m, f
-                    break
+            mst, fwctl = enrichment.get(
+                pci_addr, enrichment.get(short_pci, (None, None))
+            )
 
             results.append((mst, pci_addr, fwctl, is_primary))
 
