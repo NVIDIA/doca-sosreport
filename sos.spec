@@ -12,6 +12,9 @@ BuildRequires: python3-setuptools
 %if 0%{?rhel} && 0%{?rhel} < 10
 Requires: python3-setuptools
 %endif
+%if 0%{?suse_version}
+Requires: python3-packaging
+%endif
 Recommends: python3-file-magic
 # Mandatory just for uploading to a SFTP server:
 Recommends: python3-requests
@@ -51,7 +54,14 @@ support technicians and developers.
 %pyproject_install
 %pyproject_save_files sos
 %else
+%if 0%{?suse_version}
+# SUSE's %%py3_install takes no arguments, and %%python3_install rejects long options
+%python3_install
+install -d -m 755 %{buildroot}%{_sbindir}
+mv %{buildroot}%{_bindir}/sos %{buildroot}%{_sbindir}/sos
+%else
 %py3_install '--install-scripts=%{_sbindir}'
+%endif
 %endif
 
 install -d -m 755 %{buildroot}%{_sysconfdir}/%{sosname}
