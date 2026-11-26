@@ -7,6 +7,7 @@
 #
 # See the LICENSE file in the source distribution for further information.
 
+import os
 import shutil
 from sos.report.plugins import Plugin, IndependentPlugin
 
@@ -19,6 +20,13 @@ class RoCE(Plugin, IndependentPlugin):
     profiles = ('hardware',)
     # rdma installed with iproute2
     packages = ('iproute2', 'infiniband-diags', 'mlnx-tools')
+
+    def _is_switchdev(self, ib_dev_path):
+        # rdma_cm does not support RDMA device in switchdev mode so
+        # cma_roce_* would only fail.
+        pci = os.path.basename(os.path.realpath(ib_dev_path))
+        out = self.exec_cmd(f"devlink dev eswitch show pci/{pci}")
+        return out['status'] == 0 and 'mode switchdev' in out['output']
 
     def setup(self):
 
@@ -37,6 +45,11 @@ class RoCE(Plugin, IndependentPlugin):
             skip_cma_roce = False
             ibstat_out = self.exec_cmd(f'ibstat -s {ib}')
             if cma_rocy_installed is False or ibstat_out['status'] != 0:
+                skip_cma_roce = True
+            elif self._is_switchdev(self.path_join(IB_SYS_DIR, ib,
+                                                   "device")):
+                self._log_info(f"{ib} is in switchdev mode, skipping "
+                               "cma_roce_mode and cma_roce_tos")
                 skip_cma_roce = True
 
             # dump ECN configuration
